@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CalculationResults, CalculatorInputs } from "@/types/calculator";
-import { DollarSign, Clock, TrendingUp, AlertCircle, Calculator, Target, Package } from "lucide-react";
+import { DollarSign, Clock, TrendingUp, AlertCircle, Calculator, Target, Package, AlertTriangle, CheckCircle, Info } from "lucide-react";
 
 interface ResultsDisplayProps {
   results: CalculationResults | null;
@@ -34,6 +34,106 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Análise de Preço Desejado */}
+      {inputs.desiredPrice && inputs.desiredPrice > 0 && (
+        <Card className="border-2 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Análise de Preço
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {(() => {
+              const suggestedPrice = results.finalPriceWithFee;
+              const desiredPrice = inputs.desiredPrice;
+              const difference = desiredPrice - suggestedPrice;
+              const percentageDiff = ((difference / suggestedPrice) * 100);
+              
+              let status: 'low' | 'ideal' | 'high';
+              let statusColor: string;
+              let bgColor: string;
+              let icon: React.ReactNode;
+              let message: string;
+              
+              if (percentageDiff < -10) {
+                status = 'low';
+                statusColor = 'text-destructive';
+                bgColor = 'bg-destructive/10 border-destructive/20';
+                icon = <AlertTriangle className="h-8 w-8 text-destructive" />;
+                message = 'Seu preço está muito abaixo do recomendado! Você pode estar perdendo dinheiro.';
+              } else if (percentageDiff >= -10 && percentageDiff <= 15) {
+                status = 'ideal';
+                statusColor = 'text-success';
+                bgColor = 'bg-success/10 border-success/20';
+                icon = <CheckCircle className="h-8 w-8 text-success" />;
+                message = 'Preço ideal! Está dentro da faixa competitiva e lucrativa.';
+              } else {
+                status = 'high';
+                statusColor = 'text-warning';
+                bgColor = 'bg-warning/10 border-warning/20';
+                icon = <Info className="h-8 w-8 text-warning" />;
+                message = 'Seu preço está acima do recomendado. Pode afetar a competitividade.';
+              }
+              
+              return (
+                <div className="space-y-4">
+                  <div className={`p-6 rounded-lg border-2 ${bgColor} flex items-start gap-4`}>
+                    <div className="flex-shrink-0">
+                      {icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className={`text-xl font-bold ${statusColor} mb-2`}>
+                        {status === 'low' ? 'ABAIXO DO IDEAL' : status === 'ideal' ? 'PREÇO IDEAL' : 'ACIMA DO IDEAL'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">{message}</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-card p-3 rounded border">
+                          <p className="text-xs text-muted-foreground mb-1">Preço Sugerido</p>
+                          <p className="text-lg font-bold">R$ {suggestedPrice.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-card p-3 rounded border">
+                          <p className="text-xs text-muted-foreground mb-1">Seu Preço</p>
+                          <p className={`text-lg font-bold ${statusColor}`}>R$ {desiredPrice.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-card p-3 rounded border">
+                          <p className="text-xs text-muted-foreground mb-1">Diferença</p>
+                          <p className={`text-lg font-bold ${statusColor}`}>
+                            {difference >= 0 ? '+' : ''}R$ {difference.toFixed(2)}
+                            <span className="text-sm ml-1">
+                              ({percentageDiff >= 0 ? '+' : ''}{percentageDiff.toFixed(1)}%)
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {status === 'low' && (
+                        <div className="mt-4 p-3 bg-destructive/5 border border-destructive/20 rounded">
+                          <p className="text-xs text-destructive font-semibold">
+                            ⚠️ Atenção: Com esse preço, seu lucro real será de apenas R$ {(desiredPrice - results.productionCost).toFixed(2)} 
+                            ({(((desiredPrice - results.productionCost) / results.productionCost) * 100).toFixed(1)}% de margem)
+                          </p>
+                        </div>
+                      )}
+                      
+                      {status === 'high' && (
+                        <div className="mt-4 p-3 bg-warning/5 border border-warning/20 rounded">
+                          <p className="text-xs text-warning font-semibold">
+                            💡 Dica: Seu lucro será maior (R$ {(desiredPrice - results.productionCost).toFixed(2)}), 
+                            mas verifique se o mercado aceita esse valor.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cards de Destaque */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-primary text-primary-foreground border-0 shadow-lg">

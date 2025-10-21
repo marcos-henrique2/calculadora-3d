@@ -26,6 +26,9 @@ export interface CalculatorInputs {
 
   // Taxas
   additionalFee: number;
+
+  // Comparação de Preço (opcional)
+  desiredPrice?: number;
 }
 
 export interface CalculationResults {

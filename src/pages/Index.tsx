@@ -38,6 +38,9 @@ const Index = () => {
 
     // Taxas
     additionalFee: 0,
+
+    // Comparação de Preço
+    desiredPrice: undefined,
   });
 
   const [results, setResults] = useState<CalculationResults | null>(null);

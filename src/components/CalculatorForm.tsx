@@ -272,6 +272,21 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               placeholder="Ex: 12% Shopee, 5% Etsy"
             />
           </div>
+          <div className="pt-2">
+            <InputWithLabel
+              label="Preço que Deseja Cobrar (R$ - opcional)"
+              id="desiredPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={inputs.desiredPrice || ''}
+              onChange={(e) => handleInputChange('desiredPrice', e.target.value ? Number(e.target.value) : undefined)}
+              placeholder="Deixe vazio para usar o preço calculado"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              💡 Preencha para comparar seu preço com o valor sugerido pelo cálculo
+            </p>
+          </div>
         </CardContent>
       </Card>
 
