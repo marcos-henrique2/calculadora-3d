@@ -1,21 +1,24 @@
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 
 export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => {
+  // Converter tempo total de impressão para horas decimais
+  const printTime = inputs.printTimeHours + (inputs.printTimeMinutes / 60);
+
   // Custo do filamento
   const filamentCost = (inputs.filamentPrice / 1000) * inputs.filamentUsed;
 
   // Custo de energia
-  const energyConsumption = (inputs.printerPower / 1000) * inputs.printTime;
+  const energyConsumption = (inputs.printerPower / 1000) * printTime;
   const energyCost = energyConsumption * inputs.energyRate;
 
   // Custo de desgaste da impressora
-  const wearCost = (inputs.printerValue / inputs.printerLifespan) * inputs.printTime;
+  const wearCost = (inputs.printerValue / inputs.printerLifespan) * printTime;
 
   // Custo de mão de obra
   const laborCost = inputs.hourlyRate * inputs.activeWorkTime;
 
   // Custo de manutenção
-  const maintenanceTotalCost = inputs.maintenanceCost * inputs.printTime;
+  const maintenanceTotalCost = inputs.maintenanceCost * printTime;
 
   // Multiplicador de complexidade
   const complexityMultipliers = {
@@ -49,7 +52,7 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   const finalPriceWithFee = finalPrice * (1 + inputs.additionalFee / 100);
 
   // Tempo total
-  const totalTime = inputs.printTime + inputs.activeWorkTime;
+  const totalTime = printTime + inputs.activeWorkTime;
 
   return {
     filamentCost,

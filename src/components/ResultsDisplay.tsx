@@ -96,10 +96,10 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {results.totalTime.toFixed(1)}h
+              {Math.floor(results.totalTime)}h {Math.round((results.totalTime % 1) * 60)}min
             </div>
             <p className="text-xs opacity-80 mt-1">
-              {inputs.printTime}h impressão + {inputs.activeWorkTime}h trabalho
+              {inputs.printTimeHours}h {inputs.printTimeMinutes}min impressão + {inputs.activeWorkTime}h trabalho
             </p>
           </CardContent>
         </Card>

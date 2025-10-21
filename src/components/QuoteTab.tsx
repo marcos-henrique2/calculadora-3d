@@ -141,10 +141,12 @@ export const QuoteTab = ({ results, inputs }: QuoteTabProps) => {
             <div className="bg-muted p-4 rounded-lg">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Tempo Total Estimado:</span>
-                <span className="font-semibold text-lg">{results.totalTime.toFixed(1)} horas</span>
+                <span className="font-semibold text-lg">
+                  {Math.floor(results.totalTime)}h {Math.round((results.totalTime % 1) * 60)}min
+                </span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                ({inputs.printTime}h de impressão + {inputs.activeWorkTime}h de trabalho)
+                ({inputs.printTimeHours}h {inputs.printTimeMinutes}min de impressão + {inputs.activeWorkTime}h de trabalho)
               </p>
             </div>
           </div>

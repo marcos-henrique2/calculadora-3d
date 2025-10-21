@@ -8,7 +8,8 @@ export interface CalculatorInputs {
   // Parâmetros da Impressão
   filamentPrice: number;
   filamentUsed: number;
-  printTime: number;
+  printTimeHours: number;
+  printTimeMinutes: number;
   printerPower: number;
   energyRate: number;
   printerValue: number;

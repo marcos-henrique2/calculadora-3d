@@ -20,7 +20,8 @@ const Index = () => {
     // Parâmetros da Impressão
     filamentPrice: 80,
     filamentUsed: 50,
-    printTime: 3,
+    printTimeHours: 3,
+    printTimeMinutes: 0,
     printerPower: 250,
     energyRate: 0.75,
     printerValue: 3000,

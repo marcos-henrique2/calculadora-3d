@@ -118,8 +118,10 @@ export const generateQuotePDF = (
   pdf.setTextColor(0, 0, 0);
   pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(`Tempo Total Estimado: ${results.totalTime.toFixed(1)} horas`, margin, yPosition);
-  pdf.text(`(Impressão: ${inputs.printTime}h + Trabalho: ${inputs.activeWorkTime}h)`, margin, yPosition + 7);
+  const totalHours = Math.floor(results.totalTime);
+  const totalMinutes = Math.round((results.totalTime % 1) * 60);
+  pdf.text(`Tempo Total Estimado: ${totalHours}h ${totalMinutes}min`, margin, yPosition);
+  pdf.text(`(Impressão: ${inputs.printTimeHours}h ${inputs.printTimeMinutes}min + Trabalho: ${inputs.activeWorkTime}h)`, margin, yPosition + 7);
 
   // Rodapé
   yPosition = 270;

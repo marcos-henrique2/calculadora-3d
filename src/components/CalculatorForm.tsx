@@ -101,15 +101,30 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               value={inputs.filamentUsed}
               onChange={(e) => handleInputChange('filamentUsed', Number(e.target.value))}
             />
-            <InputWithLabel
-              label="Tempo de Impressão (h)"
-              id="printTime"
-              type="number"
-              step="0.1"
-              min="0"
-              value={inputs.printTime}
-              onChange={(e) => handleInputChange('printTime', Number(e.target.value))}
-            />
+          </div>
+          <div className="space-y-2">
+            <Label>Tempo de Impressão</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <InputWithLabel
+                label="Horas"
+                id="printTimeHours"
+                type="number"
+                min="0"
+                value={inputs.printTimeHours}
+                onChange={(e) => handleInputChange('printTimeHours', Number(e.target.value))}
+              />
+              <InputWithLabel
+                label="Minutos"
+                id="printTimeMinutes"
+                type="number"
+                min="0"
+                max="59"
+                value={inputs.printTimeMinutes}
+                onChange={(e) => handleInputChange('printTimeMinutes', Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputWithLabel
               label="Potência da Impressora (W)"
               id="printerPower"
