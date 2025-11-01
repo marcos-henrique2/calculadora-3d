@@ -40,7 +40,7 @@ export interface CalculationResults {
   maintenanceTotalCost: number;
   failureCost: number;
   complexityMultiplier: number;
-  
+
   // Totais
   productionCost: number;
   costPerUnit: number;
@@ -48,4 +48,10 @@ export interface CalculationResults {
   finalPrice: number;
   finalPriceWithFee: number;
   totalTime: number;
+
+  // Novos campos
+  /** Lucro líquido por unidade */
+  profitPerUnit: number;
+  /** Preço final por unidade (com margem e taxa) */
+  finalPricePerUnit: number;
 }

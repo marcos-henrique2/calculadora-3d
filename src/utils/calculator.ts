@@ -1,57 +1,70 @@
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 
+/**
+ * Calcula os custos de produção e preços de venda de uma peça impressa.
+ *
+ * O cálculo considera custos diretos (filamento, energia elétrica, desgaste da
+ * impressora, mão‑de‑obra, manutenção) e aplica multiplicadores de
+ * complexidade, taxa de falha, margem de lucro e taxas adicionais.
+ * Novos campos foram adicionados para fornecer lucro e preço final por peça.
+ */
 export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => {
   // Converter tempo total de impressão para horas decimais
-  const printTime = inputs.printTimeHours + (inputs.printTimeMinutes / 60);
+  const printTime = inputs.printTimeHours + inputs.printTimeMinutes / 60;
 
-  // Custo do filamento
+  // Custo do filamento (preço por kg → preço por g × gramas utilizadas)
   const filamentCost = (inputs.filamentPrice / 1000) * inputs.filamentUsed;
 
-  // Custo de energia
+  // Custo de energia (potência em W → kW × horas × tarifa)
   const energyConsumption = (inputs.printerPower / 1000) * printTime;
   const energyCost = energyConsumption * inputs.energyRate;
 
-  // Custo de desgaste da impressora
+  // Custo de desgaste da impressora (valor da impressora dividido pela vida útil)
   const wearCost = (inputs.printerValue / inputs.printerLifespan) * printTime;
 
-  // Custo de mão de obra
+  // Custo de mão‑de‑obra (valor por hora × horas de trabalho ativo)
   const laborCost = inputs.hourlyRate * inputs.activeWorkTime;
 
-  // Custo de manutenção
+  // Custo de manutenção (custo por hora × horas de impressão)
   const maintenanceTotalCost = inputs.maintenanceCost * printTime;
 
   // Multiplicador de complexidade
   const complexityMultipliers = {
     simple: 1.0,
     intermediate: 1.15,
-    high: 1.35
-  };
+    high: 1.35,
+  } as const;
   const complexityMultiplier = complexityMultipliers[inputs.complexity];
 
-  // Custo base de produção
-  const baseCost = filamentCost + energyCost + wearCost + laborCost + 
-                   maintenanceTotalCost + inputs.finishingCost;
+  // Cálculo do custo com complexidade:
+  // em vez de multiplicar todo o custo base, aplicamos o multiplicador
+  // apenas aos custos relacionados à impressão (filamento, energia, desgaste e manutenção).
+  const printRelatedCost = filamentCost + energyCost + wearCost + maintenanceTotalCost;
+  const costWithComplexity = printRelatedCost * complexityMultiplier + laborCost + inputs.finishingCost;
 
-  // Aplicar complexidade
-  const costWithComplexity = baseCost * complexityMultiplier;
-
-  // Custo de falha
+  // Custo de falha (percentual do custo já ajustado pela complexidade)
   const failureCost = costWithComplexity * (inputs.failureRate / 100);
 
   // Custo total de produção
   const productionCost = costWithComplexity + failureCost;
 
-  // Custo por unidade
+  // Custo de produção por unidade
   const costPerUnit = productionCost / inputs.quantity;
 
-  // Aplicar margem de lucro
+  // Margem de lucro total (valor absoluto)
   const profitAmount = productionCost * (inputs.profitMargin / 100);
+  // Lucro por unidade
+  const profitPerUnit = profitAmount / inputs.quantity;
+
+  // Preço final sem taxa
   const finalPrice = productionCost + profitAmount;
 
-  // Aplicar taxa adicional
+  // Preço final com taxa adicional de marketplace (caso exista)
   const finalPriceWithFee = finalPrice * (1 + inputs.additionalFee / 100);
+  // Preço final por unidade (incluindo margem e taxa)
+  const finalPricePerUnit = finalPriceWithFee / inputs.quantity;
 
-  // Tempo total
+  // Tempo total (impressão + trabalho ativo)
   const totalTime = printTime + inputs.activeWorkTime;
 
   return {
@@ -67,6 +80,8 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
     profitAmount,
     finalPrice,
     finalPriceWithFee,
-    totalTime
+    totalTime,
+    profitPerUnit,
+    finalPricePerUnit,
   };
 };

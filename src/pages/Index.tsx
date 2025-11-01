@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculatorForm } from "@/components/CalculatorForm";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
@@ -10,6 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { toast } = useToast();
+  // Estado de seleção de aba (calculator ou quote) com persistência em localStorage
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('activeTab');
+      return stored ?? 'calculator';
+    }
+    return 'calculator';
+  });
   const [inputs, setInputs] = useState<CalculatorInputs>({
     // Dados da Peça
     pieceName: "",
@@ -54,7 +62,6 @@ const Index = () => {
       });
       return;
     }
-
     if (inputs.quantity < 1) {
       toast({
         title: "Atenção",
@@ -63,15 +70,12 @@ const Index = () => {
       });
       return;
     }
-
     const calculatedResults = calculateCosts(inputs);
     setResults(calculatedResults);
-
     toast({
       title: "Cálculo realizado!",
       description: "Custos calculados com sucesso. Confira os resultados abaixo.",
     });
-
     // Scroll suave até os resultados
     setTimeout(() => {
       const resultsSection = document.getElementById('results-section');
@@ -80,6 +84,13 @@ const Index = () => {
       }
     }, 100);
   };
+
+  // Persiste a aba ativa no localStorage sempre que mudar
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('activeTab', activeTab);
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -98,16 +109,20 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="calculator" className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value)}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 h-auto p-1 bg-card shadow-lg">
-            <TabsTrigger 
-              value="calculator" 
+            <TabsTrigger
+              value="calculator"
               className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground py-3"
             >
               <Calculator className="h-4 w-4 mr-2" />
               Calculadora
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="quote"
               className="data-[state=active]:bg-gradient-accent data-[state=active]:text-accent-foreground py-3"
             >
@@ -117,23 +132,42 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="calculator" className="space-y-8">
-            <CalculatorForm 
-              inputs={inputs} 
-              setInputs={setInputs} 
+            <CalculatorForm
+              inputs={inputs}
+              setInputs={setInputs}
               onCalculate={handleCalculate}
             />
-            
             <div id="results-section">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Calculator className="h-6 w-6" />
                 Resultados do Cálculo
               </h2>
-              <ResultsDisplay results={results} inputs={inputs} />
+              <ResultsDisplay
+                results={results}
+                inputs={inputs}
+                onNavigateToQuote={() => setActiveTab('quote')}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="quote">
-            <QuoteTab results={results} inputs={inputs} />
+            <QuoteTab
+              results={results}
+              inputs={inputs}
+              onLoadBudget={(budget: any) => {
+                // Carrega os valores do orçamento salvo e muda para a aba de cálculo
+                setInputs(budget.inputs);
+                setResults(budget.results);
+                setActiveTab('calculator');
+                // Rola até a calculadora
+                setTimeout(() => {
+                  const formSection = document.getElementById('results-section');
+                  if (formSection) {
+                    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 100);
+              }}
+            />
           </TabsContent>
         </Tabs>
       </main>

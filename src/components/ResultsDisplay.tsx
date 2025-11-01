@@ -1,14 +1,43 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { CalculationResults, CalculatorInputs } from "@/types/calculator";
-import { DollarSign, Clock, TrendingUp, AlertCircle, Calculator, Target, Package, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import {
+  DollarSign,
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  Calculator,
+  Target,
+  Package,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+} from "lucide-react";
 
+/**
+ * Mostra o resultado detalhado dos custos e métricas financeiras da impressão.
+ *
+ * Este componente recebe os dados de entrada e o resultado calculado.  Ele
+ * apresenta cards com o custo total, margem de lucro e preço final, além de
+ * um painel de ROI que utiliza o lucro por unidade para estimar quantas peças
+ * são necessárias para recuperar o investimento na impressora e o tempo
+ * estimado para isso.  Também exibe o lucro líquido mensal e o ROI
+ * percentual por peça.  Caso o usuário forneça um preço desejado, é mostrada
+ * uma análise comparando o preço sugerido com o desejado.
+ */
 interface ResultsDisplayProps {
   results: CalculationResults | null;
   inputs: CalculatorInputs;
+  /**
+   * Callback opcional para navegar até a aba de orçamento.
+   * Quando fornecido, será chamado ao clicar no botão de gerar orçamento.
+   */
+  onNavigateToQuote?: () => void;
 }
 
-export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
+export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDisplayProps) => {
+  // Se não houver resultados, instrui o usuário a preencher os campos.
   if (!results) {
     return (
       <Card className="border-2">
@@ -22,6 +51,7 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
     );
   }
 
+  // Lista para o detalhamento de custos básicos
   const costBreakdown = [
     { label: "Filamento", value: results.filamentCost, icon: DollarSign },
     { label: "Energia Elétrica", value: results.energyCost, icon: DollarSign },
@@ -31,6 +61,13 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
     { label: "Acabamento", value: inputs.finishingCost, icon: DollarSign },
     { label: "Margem de Falha", value: results.failureCost, icon: AlertCircle },
   ];
+
+  // Cálculos de ROI usando lucro por unidade
+  const profitPerUnit = results.profitPerUnit;
+  const piecesToRecover = profitPerUnit > 0 ? Math.ceil(inputs.printerValue / profitPerUnit) : Infinity;
+  const monthsToRecover = profitPerUnit > 0 ? (piecesToRecover / 30) : Infinity;
+  const monthlyProfit = profitPerUnit * 30;
+  const roiPercentage = profitPerUnit > 0 ? (profitPerUnit / inputs.printerValue) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -46,16 +83,16 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
           <CardContent className="pt-6">
             {(() => {
               const suggestedPrice = results.finalPriceWithFee;
-              const desiredPrice = inputs.desiredPrice;
+              const desiredPrice = inputs.desiredPrice!;
               const difference = desiredPrice - suggestedPrice;
-              const percentageDiff = ((difference / suggestedPrice) * 100);
-              
+              const percentageDiff = (difference / suggestedPrice) * 100;
+
               let status: 'low' | 'ideal' | 'high';
               let statusColor: string;
               let bgColor: string;
               let icon: React.ReactNode;
               let message: string;
-              
+
               if (percentageDiff < -10) {
                 status = 'low';
                 statusColor = 'text-destructive';
@@ -75,19 +112,21 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
                 icon = <Info className="h-8 w-8 text-warning" />;
                 message = 'Seu preço está acima do recomendado. Pode afetar a competitividade.';
               }
-              
+
               return (
                 <div className="space-y-4">
                   <div className={`p-6 rounded-lg border-2 ${bgColor} flex items-start gap-4`}>
-                    <div className="flex-shrink-0">
-                      {icon}
-                    </div>
+                    <div className="flex-shrink-0">{icon}</div>
                     <div className="flex-1">
                       <h3 className={`text-xl font-bold ${statusColor} mb-2`}>
-                        {status === 'low' ? 'ABAIXO DO IDEAL' : status === 'ideal' ? 'PREÇO IDEAL' : 'ACIMA DO IDEAL'}
+                        {status === 'low'
+                          ? 'ABAIXO DO IDEAL'
+                          : status === 'ideal'
+                          ? 'PREÇO IDEAL'
+                          : 'ACIMA DO IDEAL'}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">{message}</p>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-card p-3 rounded border">
                           <p className="text-xs text-muted-foreground mb-1">Preço Sugerido</p>
@@ -107,21 +146,19 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
                           </p>
                         </div>
                       </div>
-                      
+
                       {status === 'low' && (
                         <div className="mt-4 p-3 bg-destructive/5 border border-destructive/20 rounded">
                           <p className="text-xs text-destructive font-semibold">
-                            ⚠️ Atenção: Com esse preço, seu lucro real será de apenas R$ {(desiredPrice - results.productionCost).toFixed(2)} 
-                            ({(((desiredPrice - results.productionCost) / results.productionCost) * 100).toFixed(1)}% de margem)
+                            ⚠️ Atenção: Com esse preço, seu lucro real será de apenas R$ {(desiredPrice - results.productionCost).toFixed(2)} ({(((desiredPrice - results.productionCost) / results.productionCost) * 100).toFixed(1)}% de margem)
                           </p>
                         </div>
                       )}
-                      
+
                       {status === 'high' && (
                         <div className="mt-4 p-3 bg-warning/5 border border-warning/20 rounded">
                           <p className="text-xs text-warning font-semibold">
-                            💡 Dica: Seu lucro será maior (R$ {(desiredPrice - results.productionCost).toFixed(2)}), 
-                            mas verifique se o mercado aceita esse valor.
+                            💡 Dica: Seu lucro será maior (R$ {(desiredPrice - results.productionCost).toFixed(2)}), mas verifique se o mercado aceita esse valor.
                           </p>
                         </div>
                       )}
@@ -136,6 +173,7 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
 
       {/* Cards de Destaque */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Custo total */}
         <Card className="bg-gradient-primary text-primary-foreground border-0 shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -144,15 +182,12 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {results.productionCost.toFixed(2)}
-            </div>
-            <p className="text-xs opacity-80 mt-1">
-              R$ {results.costPerUnit.toFixed(2)} por unidade
-            </p>
+            <div className="text-2xl font-bold">R$ {results.productionCost.toFixed(2)}</div>
+            <p className="text-xs opacity-80 mt-1">R$ {results.costPerUnit.toFixed(2)} por unidade</p>
           </CardContent>
         </Card>
 
+        {/* Margem de lucro */}
         <Card className="bg-gradient-accent text-accent-foreground border-0 shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -161,15 +196,12 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {results.profitAmount.toFixed(2)}
-            </div>
-            <p className="text-xs opacity-80 mt-1">
-              {inputs.profitMargin}% sobre o custo
-            </p>
+            <div className="text-2xl font-bold">R$ {results.profitAmount.toFixed(2)}</div>
+            <p className="text-xs opacity-80 mt-1">{inputs.profitMargin}% sobre o custo</p>
           </CardContent>
         </Card>
 
+        {/* Preço final */}
         <Card className="bg-success text-success-foreground border-0 shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -178,15 +210,16 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {results.finalPriceWithFee.toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">R$ {results.finalPriceWithFee.toFixed(2)}</div>
             <p className="text-xs opacity-80 mt-1">
               {inputs.additionalFee > 0 ? `Com ${inputs.additionalFee}% de taxa` : 'Sem taxas adicionais'}
             </p>
+            {/* Mostra o preço final por unidade */}
+            <p className="text-xs opacity-80 mt-1">R$ {results.finalPricePerUnit.toFixed(2)} por unidade</p>
           </CardContent>
         </Card>
 
+        {/* Tempo total */}
         <Card className="bg-primary text-primary-foreground border-0 shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -219,7 +252,7 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             <div className="text-center p-4 bg-card rounded-lg border-2">
               <Package className="h-8 w-8 mx-auto mb-2 text-primary" />
               <div className="text-3xl font-bold text-primary mb-1">
-                {Math.ceil(inputs.printerValue / results.profitAmount)}
+                {profitPerUnit > 0 ? piecesToRecover : '—'}
               </div>
               <p className="text-sm text-muted-foreground">
                 Peças necessárias para recuperar investimento da impressora
@@ -230,7 +263,7 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             <div className="text-center p-4 bg-card rounded-lg border-2">
               <Clock className="h-8 w-8 mx-auto mb-2 text-accent" />
               <div className="text-3xl font-bold text-accent mb-1">
-                {(Math.ceil(inputs.printerValue / results.profitAmount) / 30).toFixed(1)}
+                {profitPerUnit > 0 ? monthsToRecover.toFixed(1) : '—'}
               </div>
               <p className="text-sm text-muted-foreground">
                 Meses para recuperar investimento (estimativa: 30 peças/mês)
@@ -241,7 +274,7 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             <div className="text-center p-4 bg-card rounded-lg border-2">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-success" />
               <div className="text-3xl font-bold text-success mb-1">
-                R$ {(results.profitAmount * 30).toFixed(2)}
+                R$ {profitPerUnit > 0 ? monthlyProfit.toFixed(2) : '—'}
               </div>
               <p className="text-sm text-muted-foreground">
                 Lucro líquido mensal estimado (30 peças/mês)
@@ -258,20 +291,19 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido por peça:</span>
-              <span className="font-semibold text-success">R$ {results.profitAmount.toFixed(2)}</span>
+              <span className="font-semibold text-success">R$ {profitPerUnit.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">ROI percentual:</span>
               <span className="font-semibold text-primary">
-                {((results.profitAmount / inputs.printerValue) * 100).toFixed(2)}% por peça
+                {profitPerUnit > 0 ? roiPercentage.toFixed(2) : '0.00'}% por peça
               </span>
             </div>
           </div>
 
           <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
             <p className="text-xs text-center text-muted-foreground">
-              💡 <strong>Dica:</strong> Os cálculos consideram uma média de 30 peças por mês. 
-              Ajuste sua produção e margem de lucro para atingir seus objetivos financeiros.
+              💡 <strong>Dica:</strong> Os cálculos consideram uma média de 30 peças por mês. Ajuste sua produção e margem de lucro para atingir seus objetivos financeiros.
             </p>
           </div>
         </CardContent>
@@ -311,13 +343,45 @@ export const ResultsDisplay = ({ results, inputs }: ResultsDisplayProps) => {
             <div className="flex justify-between items-center text-sm">
               <span>Complexidade:</span>
               <span className="font-semibold capitalize">
-                {inputs.complexity === 'simple' ? 'Simples' : 
-                 inputs.complexity === 'intermediate' ? 'Intermediária' : 'Alta'}
+                {inputs.complexity === 'simple'
+                  ? 'Simples'
+                  : inputs.complexity === 'intermediate'
+                  ? 'Intermediária'
+                  : 'Alta'}
               </span>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Botão para ir à página de Orçamentos */}
+      {results && (
+        <div className="pt-4">
+          <Button
+            onClick={() => {
+              if (onNavigateToQuote) {
+                onNavigateToQuote();
+                // Rolagem para o topo para mostrar a aba de orçamento
+                setTimeout(() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 50);
+              } else {
+                // Fallback: tenta clicar no trigger da aba se o callback não for fornecido
+                const quoteTabTrigger = document.querySelector('[role="tab"][value="quote"]') as HTMLElement | null;
+                if (quoteTabTrigger) {
+                  quoteTabTrigger.click();
+                  setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }, 50);
+                }
+              }
+            }}
+            className="w-full bg-gradient-accent text-accent-foreground hover:opacity-90 transition-opacity text-lg py-6"
+          >
+            Gerar Orçamento
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
