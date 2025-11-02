@@ -19,8 +19,14 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   const energyConsumption = (inputs.printerPower / 1000) * printTime;
   const energyCost = energyConsumption * inputs.energyRate;
 
-  // Custo de desgaste da impressora (valor da impressora dividido pela vida útil)
-  const wearCost = (inputs.printerValue / inputs.printerLifespan) * printTime;
+  // Custo de desgaste da impressora (valor da impressora dividido pela vida útil).
+  // Se a vida útil for zero ou não informada, evitamos divisão por zero atribuindo custo zero.
+  let wearCost = 0;
+  if (inputs.printerLifespan && inputs.printerLifespan > 0) {
+    wearCost = (inputs.printerValue / inputs.printerLifespan) * printTime;
+  } else {
+    wearCost = 0;
+  }
 
   // Custo de mão‑de‑obra (valor por hora × horas de trabalho ativo)
   const laborCost = inputs.hourlyRate * inputs.activeWorkTime;
@@ -49,12 +55,13 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   const productionCost = costWithComplexity + failureCost;
 
   // Custo de produção por unidade
-  const costPerUnit = productionCost / inputs.quantity;
+  const quantity = inputs.quantity > 0 ? inputs.quantity : 1;
+  const costPerUnit = productionCost / quantity;
 
   // Margem de lucro total (valor absoluto)
   const profitAmount = productionCost * (inputs.profitMargin / 100);
   // Lucro por unidade
-  const profitPerUnit = profitAmount / inputs.quantity;
+  const profitPerUnit = profitAmount / quantity;
 
   // Preço final sem taxa
   const finalPrice = productionCost + profitAmount;
@@ -62,7 +69,7 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   // Preço final com taxa adicional de marketplace (caso exista)
   const finalPriceWithFee = finalPrice * (1 + inputs.additionalFee / 100);
   // Preço final por unidade (incluindo margem e taxa)
-  const finalPricePerUnit = finalPriceWithFee / inputs.quantity;
+  const finalPricePerUnit = finalPriceWithFee / quantity;
 
   // Tempo total (impressão + trabalho ativo)
   const totalTime = printTime + inputs.activeWorkTime;
