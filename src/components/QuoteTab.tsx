@@ -11,6 +11,7 @@ import {
   Pencil,
   Clock,
   TrendingUp,
+  User,
 } from "lucide-react";
 import { generateQuotePDF } from "@/utils/pdfGenerator";
 import { useToast } from "@/hooks/use-toast";
@@ -25,85 +26,81 @@ interface SavedBudget {
 interface QuoteTabProps {
   results: CalculationResults | null;
   inputs: CalculatorInputs;
-  /**
-   * Callback para carregar um orçamento salvo e retornar à aba da calculadora.
-   */
   onLoadBudget?: (budget: SavedBudget) => void;
 }
 
 export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
   const { toast } = useToast();
 
-  // Lista de orçamentos salvos
   const [savedBudgets, setSavedBudgets] = useState<SavedBudget[]>([]);
-  // Orçamento selecionado para visualização
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('selectedBudgetId');
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedBudgetId");
     }
     return null;
   });
 
-  // Carrega orçamentos salvos do localStorage ao montar
+  // Carrega orçamentos do localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('savedBudgets');
+    const stored = localStorage.getItem("savedBudgets");
     if (stored) {
       try {
         const parsed: SavedBudget[] = JSON.parse(stored);
         setSavedBudgets(parsed);
       } catch (error) {
-        console.error('Erro ao carregar orçamentos do armazenamento local', error);
+        console.error("Erro ao carregar orçamentos do armazenamento local", error);
       }
     }
   }, []);
 
-  // Persiste a seleção no localStorage sempre que mudar
+  // Persiste seleção
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       if (selectedBudgetId) {
-        localStorage.setItem('selectedBudgetId', selectedBudgetId);
+        localStorage.setItem("selectedBudgetId", selectedBudgetId);
       } else {
-        localStorage.removeItem('selectedBudgetId');
+        localStorage.removeItem("selectedBudgetId");
       }
     }
   }, [selectedBudgetId]);
 
-  // Quando há um novo resultado calculado, limpa a seleção de orçamento salvo para mostrar o novo orçamento
+  // Atualiza quando há novo resultado
   useEffect(() => {
     if (results) {
       setSelectedBudgetId(null);
     }
   }, [results]);
 
-  // Persiste a lista no localStorage
   const persistBudgets = (budgets: SavedBudget[]) => {
-    localStorage.setItem('savedBudgets', JSON.stringify(budgets));
+    localStorage.setItem("savedBudgets", JSON.stringify(budgets));
   };
 
-  // Gera identificador simples
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const handleSaveBudget = () => {
     if (!results) {
       toast({
-        title: 'Erro',
-        description: 'Calcule os custos antes de salvar o orçamento',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Calcule os custos antes de salvar o orçamento",
+        variant: "destructive",
       });
       return;
     }
+
     const newBudget: SavedBudget = {
       id: generateId(),
       inputs: { ...inputs },
       results: { ...results },
       createdAt: new Date().toISOString(),
     };
+
     const updated = [...savedBudgets, newBudget];
     setSavedBudgets(updated);
     persistBudgets(updated);
+
     toast({
-      title: 'Orçamento salvo!',
-      description: 'O orçamento foi salvo no seu navegador.',
+      title: "Orçamento salvo!",
+      description: "O orçamento foi salvo no seu navegador.",
     });
     setSelectedBudgetId(newBudget.id);
   };
@@ -113,8 +110,8 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
     setSavedBudgets(updated);
     persistBudgets(updated);
     toast({
-      title: 'Orçamento excluído',
-      description: 'O orçamento foi removido da lista.',
+      title: "Orçamento excluído",
+      description: "O orçamento foi removido da lista.",
     });
     if (id === selectedBudgetId) {
       setSelectedBudgetId(null);
@@ -122,7 +119,6 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
   };
 
   const handleGeneratePDF = () => {
-    // Se houver orçamento selecionado, usa ele; senão, usa o orçamento atual calculado
     const budgetFromList = selectedBudgetId
       ? savedBudgets.find((b) => b.id === selectedBudgetId)
       : null;
@@ -130,30 +126,31 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
     const activeResults = budgetFromList ? budgetFromList.results : results;
     if (!activeResults) {
       toast({
-        title: 'Erro',
-        description: 'Nenhum orçamento selecionado ou calculado para gerar PDF',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Nenhum orçamento selecionado ou calculado para gerar PDF",
+        variant: "destructive",
       });
       return;
     }
+
     try {
       generateQuotePDF(activeInputs, activeResults);
       toast({
-        title: 'PDF Gerado!',
-        description: 'O orçamento foi baixado com sucesso',
+        title: "PDF Gerado!",
+        description: "O orçamento foi baixado com sucesso",
       });
     } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível gerar o PDF',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível gerar o PDF",
+        variant: "destructive",
       });
     }
   };
 
   return (
     <div className="space-y-8">
-      {/* Card principal para exibir orçamento selecionado ou atual */}
+      {/* Card principal */}
       <Card className="border-2 shadow-xl">
         <CardHeader className="bg-gradient-primary text-primary-foreground rounded-t-xl">
           <div className="flex items-center gap-2">
@@ -168,6 +165,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
               : null;
             const activeInputs = selectedBudget ? selectedBudget.inputs : inputs;
             const activeResults = selectedBudget ? selectedBudget.results : results;
+
             if (!activeResults) {
               return (
                 <div className="text-center text-muted-foreground">
@@ -175,6 +173,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                 </div>
               );
             }
+
             return (
               <>
                 {/* Informações da Peça */}
@@ -186,26 +185,24 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                   <div className="bg-muted p-4 rounded-lg space-y-2">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
+                        <p className="text-sm text-muted-foreground">Cliente</p>
+                        <p className="font-semibold">
+                          {activeInputs.clientName || "—"}
+                        </p>
+                      </div>
+                      <div>
                         <p className="text-sm text-muted-foreground">Peça</p>
                         <p className="font-semibold">{activeInputs.pieceName}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Quantidade</p>
-                        <p className="font-semibold">{activeInputs.quantity} unidade(s)</p>
+                        <p className="font-semibold">
+                          {activeInputs.quantity} unidade(s)
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Material</p>
                         <p className="font-semibold">{activeInputs.material}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Complexidade</p>
-                        <p className="font-semibold capitalize">
-                          {activeInputs.complexity === 'simple'
-                            ? 'Simples'
-                            : activeInputs.complexity === 'intermediate'
-                            ? 'Intermediária'
-                            : 'Alta'}
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -219,23 +216,35 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Custo de Produção:</span>
-                      <span className="font-medium">R$ {activeResults.productionCost.toFixed(2)}</span>
+                      <span className="font-medium">
+                        R$ {activeResults.productionCost.toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Custo por Unidade:</span>
-                      <span className="font-medium">R$ {activeResults.costPerUnit.toFixed(2)}</span>
+                      <span className="font-medium">
+                        R$ {activeResults.costPerUnit.toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
                         Margem de Lucro ({activeInputs.profitMargin}%):
                       </span>
-                      <span className="font-medium text-success">R$ {activeResults.profitAmount.toFixed(2)}</span>
+                      <span className="font-medium text-success">
+                        R$ {activeResults.profitAmount.toFixed(2)}
+                      </span>
                     </div>
                     {activeInputs.additionalFee > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Taxa Adicional ({activeInputs.additionalFee}%):</span>
+                        <span className="text-muted-foreground">
+                          Taxa Adicional ({activeInputs.additionalFee}%):
+                        </span>
                         <span className="font-medium">
-                          R${(activeResults.finalPriceWithFee - activeResults.finalPrice).toFixed(2)}
+                          R$
+                          {(
+                            activeResults.finalPriceWithFee -
+                            activeResults.finalPrice
+                          ).toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -246,26 +255,10 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                   <div className="bg-gradient-accent text-accent-foreground p-4 rounded-lg">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">PREÇO TOTAL:</span>
-                      <span className="text-2xl font-bold">R$ {activeResults.finalPriceWithFee.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Prazo */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Prazo de Entrega</h3>
-                  <div className="bg-muted p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Tempo Total Estimado:</span>
-                      <span className="font-semibold text-lg">
-                        {Math.floor(activeResults.totalTime)}h {Math.round((activeResults.totalTime % 1) * 60)}min
+                      <span className="text-2xl font-bold">
+                        R$ {activeResults.finalPriceWithFee.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      ({activeInputs.printTimeHours}h {activeInputs.printTimeMinutes}min de impressão + {activeInputs.activeWorkTime}h de trabalho)
-                    </p>
                   </div>
                 </div>
               </>
@@ -276,23 +269,28 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
 
           {/* Botões */}
           <div className="space-y-3">
-            {/* Botão para gerar PDF. Desabilita se não houver orçamento ativo */}
             <Button
               onClick={handleGeneratePDF}
               className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-lg py-6"
               size="lg"
-              disabled={!(selectedBudgetId ? savedBudgets.some((b) => b.id === selectedBudgetId) : !!results)}
+              disabled={
+                !(selectedBudgetId
+                  ? savedBudgets.some((b) => b.id === selectedBudgetId)
+                  : !!results)
+              }
             >
-              <Download className="mr-2 h-5 w-5" />Gerar Orçamento em PDF
+              <Download className="mr-2 h-5 w-5" />
+              Gerar Orçamento em PDF
             </Button>
-            {/* Botão de salvar visível sempre que há um cálculo disponível para salvar */}
+
             {results && (
               <Button
                 onClick={handleSaveBudget}
                 className="w-full bg-gradient-accent hover:opacity-90 transition-opacity text-lg py-6"
                 size="lg"
               >
-                <FileText className="mr-2 h-5 w-5" />Salvar Orçamento
+                <FileText className="mr-2 h-5 w-5" />
+                Salvar Orçamento
               </Button>
             )}
             <p className="text-xs text-center text-muted-foreground">
@@ -302,25 +300,31 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Lista de orçamentos salvos */}
+      {/* Lista de Orçamentos Salvos */}
       <Card className="border-2">
         <CardHeader className="bg-secondary">
           <CardTitle>Orçamentos Salvos</CardTitle>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
           {savedBudgets.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum orçamento salvo ainda.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum orçamento salvo ainda.
+            </p>
           )}
           {savedBudgets.map((budget) => (
             <div
               key={budget.id}
-              className={`p-4 border rounded-lg flex flex-col gap-2 cursor-pointer ${selectedBudgetId === budget.id ? 'bg-muted/70' : 'bg-muted'}`}
+              className={`p-4 border rounded-lg flex flex-col gap-2 cursor-pointer ${
+                selectedBudgetId === budget.id ? "bg-muted/70" : "bg-muted"
+              }`}
               onClick={() => setSelectedBudgetId(budget.id)}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-medium">
-                    {budget.inputs.pieceName} - {budget.inputs.quantity} u.
+                  <p className="font-medium flex items-center gap-1">
+                    <User className="h-4 w-4 text-primary" />
+                    {budget.inputs.clientName || "Sem nome"} —{" "}
+                    {budget.inputs.pieceName}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Criado em {new Date(budget.createdAt).toLocaleString()}
@@ -353,10 +357,13 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
               </div>
               <div className="flex justify-between text-sm mt-2">
                 <span className="text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-4 w-4" /> {Math.floor(budget.results.totalTime)}h {Math.round((budget.results.totalTime % 1) * 60)}min
+                  <Clock className="h-4 w-4" />{" "}
+                  {Math.floor(budget.results.totalTime)}h{" "}
+                  {Math.round((budget.results.totalTime % 1) * 60)}min
                 </span>
                 <span className="text-muted-foreground flex items-center gap-1">
-                  <TrendingUp className="h-4 w-4" /> R$ {budget.results.finalPriceWithFee.toFixed(2)}
+                  <TrendingUp className="h-4 w-4" /> R${" "}
+                  {budget.results.finalPriceWithFee.toFixed(2)}
                 </span>
               </div>
             </div>

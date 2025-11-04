@@ -1,4 +1,7 @@
 export interface CalculatorInputs {
+  // Dados do Cliente
+  clientName?: string; // <--- Campo adicionado
+
   // Dados da Peça
   pieceName: string;
   quantity: number;
@@ -52,6 +55,7 @@ export interface CalculationResults {
   // Novos campos
   /** Lucro líquido por unidade */
   profitPerUnit: number;
+
   /** Preço final por unidade (com margem e taxa) */
   finalPricePerUnit: number;
 }

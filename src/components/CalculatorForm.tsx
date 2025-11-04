@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Calculator, Package, Zap, Wrench, TrendingUp, DollarSign } from "lucide-react";
+import { Calculator, Package, Zap, Wrench, TrendingUp } from "lucide-react";
 import { CalculatorInputs } from "@/types/calculator";
 
 interface CalculatorFormProps {
@@ -33,11 +33,20 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
+          {/* Campo Nome do Cliente */}
+          <InputWithLabel
+            label="Nome do Cliente"
+            id="clientName"
+            value={inputs.clientName || ""}
+            onChange={(e) => handleInputChange("clientName", e.target.value)}
+            placeholder="Ex: João Silva"
+          />
+
           <InputWithLabel
             label="Nome/Descrição da Peça"
             id="pieceName"
             value={inputs.pieceName}
-            onChange={(e) => handleInputChange('pieceName', e.target.value)}
+            onChange={(e) => handleInputChange("pieceName", e.target.value)}
             placeholder="Ex: Suporte para celular"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -47,13 +56,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               min="1"
               value={inputs.quantity}
-              onChange={(e) => handleInputChange('quantity', Number(e.target.value))}
+              onChange={(e) => handleInputChange("quantity", Number(e.target.value))}
             />
             <InputWithLabel
               label="Material Utilizado"
               id="material"
               value={inputs.material}
-              onChange={(e) => handleInputChange('material', e.target.value)}
+              onChange={(e) => handleInputChange("material", e.target.value)}
               placeholder="Ex: PLA, ABS, PETG"
             />
           </div>
@@ -61,7 +70,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
             <Checkbox
               id="manualPainting"
               checked={inputs.manualPainting}
-              onCheckedChange={(checked) => handleInputChange('manualPainting', checked as boolean)}
+              onCheckedChange={(checked) => handleInputChange("manualPainting", checked as boolean)}
             />
             <Label htmlFor="manualPainting" className="cursor-pointer">
               Pintura manual necessária
@@ -90,7 +99,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.01"
               min="0"
               value={inputs.filamentPrice}
-              onChange={(e) => handleInputChange('filamentPrice', Number(e.target.value))}
+              onChange={(e) => handleInputChange("filamentPrice", Number(e.target.value))}
             />
             <InputWithLabel
               label="Filamento Usado (g)"
@@ -99,7 +108,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.1"
               min="0"
               value={inputs.filamentUsed}
-              onChange={(e) => handleInputChange('filamentUsed', Number(e.target.value))}
+              onChange={(e) => handleInputChange("filamentUsed", Number(e.target.value))}
             />
           </div>
           <div className="space-y-2">
@@ -111,7 +120,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
                 type="number"
                 min="0"
                 value={inputs.printTimeHours}
-                onChange={(e) => handleInputChange('printTimeHours', Number(e.target.value))}
+                onChange={(e) => handleInputChange("printTimeHours", Number(e.target.value))}
               />
               <InputWithLabel
                 label="Minutos"
@@ -120,7 +129,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
                 min="0"
                 max="59"
                 value={inputs.printTimeMinutes}
-                onChange={(e) => handleInputChange('printTimeMinutes', Number(e.target.value))}
+                onChange={(e) => handleInputChange("printTimeMinutes", Number(e.target.value))}
               />
             </div>
           </div>
@@ -131,7 +140,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               min="0"
               value={inputs.printerPower}
-              onChange={(e) => handleInputChange('printerPower', Number(e.target.value))}
+              onChange={(e) => handleInputChange("printerPower", Number(e.target.value))}
             />
             <InputWithLabel
               label="Tarifa de Energia (R$/kWh)"
@@ -140,7 +149,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.01"
               min="0"
               value={inputs.energyRate}
-              onChange={(e) => handleInputChange('energyRate', Number(e.target.value))}
+              onChange={(e) => handleInputChange("energyRate", Number(e.target.value))}
             />
             <InputWithLabel
               label="Valor da Impressora (R$)"
@@ -149,7 +158,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.01"
               min="0"
               value={inputs.printerValue}
-              onChange={(e) => handleInputChange('printerValue', Number(e.target.value))}
+              onChange={(e) => handleInputChange("printerValue", Number(e.target.value))}
             />
             <InputWithLabel
               label="Vida Útil da Impressora (h)"
@@ -157,7 +166,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               min="1"
               value={inputs.printerLifespan}
-              onChange={(e) => handleInputChange('printerLifespan', Number(e.target.value))}
+              onChange={(e) => handleInputChange("printerLifespan", Number(e.target.value))}
             />
           </div>
         </CardContent>
@@ -183,7 +192,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.01"
               min="0"
               value={inputs.hourlyRate}
-              onChange={(e) => handleInputChange('hourlyRate', Number(e.target.value))}
+              onChange={(e) => handleInputChange("hourlyRate", Number(e.target.value))}
             />
             <InputWithLabel
               label="Tempo de Trabalho Ativo (h)"
@@ -192,7 +201,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.1"
               min="0"
               value={inputs.activeWorkTime}
-              onChange={(e) => handleInputChange('activeWorkTime', Number(e.target.value))}
+              onChange={(e) => handleInputChange("activeWorkTime", Number(e.target.value))}
             />
             <InputWithLabel
               label="Custo de Acabamento (R$)"
@@ -201,7 +210,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.01"
               min="0"
               value={inputs.finishingCost}
-              onChange={(e) => handleInputChange('finishingCost', Number(e.target.value))}
+              onChange={(e) => handleInputChange("finishingCost", Number(e.target.value))}
             />
             <InputWithLabel
               label="Custo de Manutenção (R$/h)"
@@ -210,7 +219,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.01"
               min="0"
               value={inputs.maintenanceCost}
-              onChange={(e) => handleInputChange('maintenanceCost', Number(e.target.value))}
+              onChange={(e) => handleInputChange("maintenanceCost", Number(e.target.value))}
             />
             <InputWithLabel
               label="Taxa de Falha (%)"
@@ -220,11 +229,11 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               min="0"
               max="100"
               value={inputs.failureRate}
-              onChange={(e) => handleInputChange('failureRate', Number(e.target.value))}
+              onChange={(e) => handleInputChange("failureRate", Number(e.target.value))}
             />
             <div className="space-y-2">
               <Label htmlFor="complexity">Complexidade da Peça</Label>
-              <Select value={inputs.complexity} onValueChange={(value) => handleInputChange('complexity', value)}>
+              <Select value={inputs.complexity} onValueChange={(value) => handleInputChange("complexity", value)}>
                 <SelectTrigger id="complexity">
                   <SelectValue />
                 </SelectTrigger>
@@ -259,7 +268,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.1"
               min="0"
               value={inputs.profitMargin}
-              onChange={(e) => handleInputChange('profitMargin', Number(e.target.value))}
+              onChange={(e) => handleInputChange("profitMargin", Number(e.target.value))}
             />
             <InputWithLabel
               label="Taxa Adicional - Marketplace (% opcional)"
@@ -268,7 +277,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.1"
               min="0"
               value={inputs.additionalFee}
-              onChange={(e) => handleInputChange('additionalFee', Number(e.target.value))}
+              onChange={(e) => handleInputChange("additionalFee", Number(e.target.value))}
               placeholder="Ex: 12% Shopee, 5% Etsy"
             />
           </div>
@@ -279,8 +288,10 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.desiredPrice || ''}
-              onChange={(e) => handleInputChange('desiredPrice', e.target.value ? Number(e.target.value) : undefined)}
+              value={inputs.desiredPrice || ""}
+              onChange={(e) =>
+                handleInputChange("desiredPrice", e.target.value ? Number(e.target.value) : undefined)
+              }
               placeholder="Deixe vazio para usar o preço calculado"
             />
             <p className="text-xs text-muted-foreground mt-2">
@@ -291,7 +302,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
       </Card>
 
       {/* Botão Calcular */}
-      <Button 
+      <Button
         onClick={onCalculate}
         className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-lg py-6"
         size="lg"
