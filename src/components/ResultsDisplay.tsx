@@ -1,7 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { CalculationResults, CalculatorInputs } from "@/types/calculator";
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea' // Importado
+import { CalculationResults, CalculatorInputs } from '@/types/calculator'
 import {
   DollarSign,
   Clock,
@@ -13,30 +16,35 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-} from "lucide-react";
+  Save, // Importado
+  Loader2, // Importado
+} from 'lucide-react'
+import { supabase } from '@/lib/supabaseClient' // <-- Importado
+import { useToast } from '@/components/ui/use-toast' // <-- Importado
 
 /**
  * Mostra o resultado detalhado dos custos e métricas financeiras da impressão.
- *
- * Este componente recebe os dados de entrada e o resultado calculado.  Ele
- * apresenta cards com o custo total, margem de lucro e preço final, além de
- * um painel de ROI que utiliza o lucro por unidade para estimar quantas peças
- * são necessárias para recuperar o investimento na impressora e o tempo
- * estimado para isso.  Também exibe o lucro líquido mensal e o ROI
- * percentual por peça.  Caso o usuário forneça um preço desejado, é mostrada
- * uma análise comparando o preço sugerido com o desejado.
+ * ... (resto da descrição do componente) ...
  */
 interface ResultsDisplayProps {
-  results: CalculationResults | null;
-  inputs: CalculatorInputs;
+  results: CalculationResults | null
+  inputs: CalculatorInputs
   /**
    * Callback opcional para navegar até a aba de orçamento.
    * Quando fornecido, será chamado ao clicar no botão de gerar orçamento.
    */
-  onNavigateToQuote?: () => void;
+  onNavigateToQuote?: () => void
 }
 
 export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDisplayProps) => {
+  // Estados para o novo formulário de publicação
+  const [productName, setProductName] = useState('')
+  const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [quantity, setQuantity] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+
   // Se não houver resultados, instrui o usuário a preencher os campos.
   if (!results) {
     return (
@@ -48,26 +56,73 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   // Lista para o detalhamento de custos básicos
   const costBreakdown = [
-    { label: "Filamento", value: results.filamentCost, icon: DollarSign },
-    { label: "Energia Elétrica", value: results.energyCost, icon: DollarSign },
-    { label: "Desgaste da Impressora", value: results.wearCost, icon: DollarSign },
-    { label: "Mão de Obra", value: results.laborCost, icon: DollarSign },
-    { label: "Manutenção", value: results.maintenanceTotalCost, icon: DollarSign },
-    { label: "Acabamento", value: inputs.finishingCost, icon: DollarSign },
-    { label: "Margem de Falha", value: results.failureCost, icon: AlertCircle },
-  ];
+    { label: 'Filamento', value: results.filamentCost, icon: DollarSign },
+    { label: 'Energia Elétrica', value: results.energyCost, icon: DollarSign },
+    { label: 'Desgaste da Impressora', value: results.wearCost, icon: DollarSign },
+    { label: 'Mão de Obra', value: results.laborCost, icon: DollarSign },
+    { label: 'Manutenção', value: results.maintenanceTotalCost, icon: DollarSign },
+    { label: 'Acabamento', value: inputs.finishingCost, icon: DollarSign },
+    { label: 'Margem de Falha', value: results.failureCost, icon: AlertCircle },
+  ]
 
   // Cálculos de ROI usando lucro por unidade
-  const profitPerUnit = results.profitPerUnit;
-  const piecesToRecover = profitPerUnit > 0 ? Math.ceil(inputs.printerValue / profitPerUnit) : Infinity;
-  const monthsToRecover = profitPerUnit > 0 ? (piecesToRecover / 30) : Infinity;
-  const monthlyProfit = profitPerUnit * 30;
-  const roiPercentage = profitPerUnit > 0 ? (profitPerUnit / inputs.printerValue) * 100 : 0;
+  const profitPerUnit = results.profitPerUnit
+  const piecesToRecover = profitPerUnit > 0 ? Math.ceil(inputs.printerValue / profitPerUnit) : Infinity
+  const monthsToRecover = profitPerUnit > 0 ? piecesToRecover / 30 : Infinity
+  const monthlyProfit = profitPerUnit * 30
+  const roiPercentage = profitPerUnit > 0 ? (profitPerUnit / inputs.printerValue) * 100 : 0
+
+  // Função para publicar o produto na loja
+  const handlePublishProduct = async () => {
+    if (!productName || !results.finalPriceWithFee) {
+      toast({
+        title: 'Erro',
+        description: 'O nome do produto e o preço são obrigatórios.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    const { data, error } = await supabase.from('products').insert([
+      {
+        name: productName,
+        description: description,
+        price: results.finalPriceWithFee, // Preço final da calculadora
+        quantity: Number(quantity),
+        images: imageUrl ? [imageUrl] : [], // A coluna 'images' é um array de texto
+        status: 'active', // Define como 'active' por padrão
+        // category_id: 'UUID_DA_CATEGORIA_3D_AQUI' // Opcional
+      },
+    ])
+
+    setIsLoading(false)
+
+    if (error) {
+      toast({
+        title: 'Erro ao publicar',
+        description: `Ocorreu um erro: ${error.message}.`,
+        variant: 'destructive',
+      })
+      console.error('Erro do Supabase:', error)
+    } else {
+      toast({
+        title: 'Sucesso!',
+        description: `Produto "${productName}" publicado na loja.`,
+      })
+      // Limpa os campos após o sucesso
+      setProductName('')
+      setDescription('')
+      setImageUrl('')
+      setQuantity(1)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -82,35 +137,35 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
           </CardHeader>
           <CardContent className="pt-6">
             {(() => {
-              const suggestedPrice = results.finalPriceWithFee;
-              const desiredPrice = inputs.desiredPrice!;
-              const difference = desiredPrice - suggestedPrice;
-              const percentageDiff = (difference / suggestedPrice) * 100;
+              const suggestedPrice = results.finalPriceWithFee
+              const desiredPrice = inputs.desiredPrice!
+              const difference = desiredPrice - suggestedPrice
+              const percentageDiff = (difference / suggestedPrice) * 100
 
-              let status: 'low' | 'ideal' | 'high';
-              let statusColor: string;
-              let bgColor: string;
-              let icon: React.ReactNode;
-              let message: string;
+              let status: 'low' | 'ideal' | 'high'
+              let statusColor: string
+              let bgColor: string
+              let icon: React.ReactNode
+              let message: string
 
               if (percentageDiff < -10) {
-                status = 'low';
-                statusColor = 'text-destructive';
-                bgColor = 'bg-destructive/10 border-destructive/20';
-                icon = <AlertTriangle className="h-8 w-8 text-destructive" />;
-                message = 'Seu preço está muito abaixo do recomendado! Você pode estar perdendo dinheiro.';
+                status = 'low'
+                statusColor = 'text-destructive'
+                bgColor = 'bg-destructive/10 border-destructive/20'
+                icon = <AlertTriangle className="h-8 w-8 text-destructive" />
+                message = 'Seu preço está muito abaixo do recomendado! Você pode estar perdendo dinheiro.'
               } else if (percentageDiff >= -10 && percentageDiff <= 15) {
-                status = 'ideal';
-                statusColor = 'text-success';
-                bgColor = 'bg-success/10 border-success/20';
-                icon = <CheckCircle className="h-8 w-8 text-success" />;
-                message = 'Preço ideal! Está dentro da faixa competitiva e lucrativa.';
+                status = 'ideal'
+                statusColor = 'text-success'
+                bgColor = 'bg-success/10 border-success/20'
+                icon = <CheckCircle className="h-8 w-8 text-success" />
+                message = 'Preço ideal! Está dentro da faixa competitiva e lucrativa.'
               } else {
-                status = 'high';
-                statusColor = 'text-warning';
-                bgColor = 'bg-warning/10 border-warning/20';
-                icon = <Info className="h-8 w-8 text-warning" />;
-                message = 'Seu preço está acima do recomendado. Pode afetar a competitividade.';
+                status = 'high'
+                statusColor = 'text-warning'
+                bgColor = 'bg-warning/10 border-warning/20'
+                icon = <Info className="h-8 w-8 text-warning" />
+                message = 'Seu preço está acima do recomendado. Pode afetar a competitividade.'
               }
 
               return (
@@ -141,7 +196,8 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
                           <p className={`text-lg font-bold ${statusColor}`}>
                             {difference >= 0 ? '+' : ''}R$ {difference.toFixed(2)}
                             <span className="text-sm ml-1">
-                              ({percentageDiff >= 0 ? '+' : ''}{percentageDiff.toFixed(1)}%)
+                              ({percentageDiff >= 0 ? '+' : ''}
+                              {percentageDiff.toFixed(1)}%)
                             </span>
                           </p>
                         </div>
@@ -150,7 +206,10 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
                       {status === 'low' && (
                         <div className="mt-4 p-3 bg-destructive/5 border border-destructive/20 rounded">
                           <p className="text-xs text-destructive font-semibold">
-                            ⚠️ Atenção: Com esse preço, seu lucro real será de apenas R$ {(desiredPrice - results.productionCost).toFixed(2)} ({(((desiredPrice - results.productionCost) / results.productionCost) * 100).toFixed(1)}% de margem)
+                            ⚠️ Atenção: Com esse preço, seu lucro real será de apenas R${' '}
+                            {(desiredPrice - results.productionCost).toFixed(2)} (
+                            {(((desiredPrice - results.productionCost) / results.productionCost) * 100).toFixed(1)}%
+                            de margem)
                           </p>
                         </div>
                       )}
@@ -158,14 +217,15 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
                       {status === 'high' && (
                         <div className="mt-4 p-3 bg-warning/5 border border-warning/20 rounded">
                           <p className="text-xs text-warning font-semibold">
-                            💡 Dica: Seu lucro será maior (R$ {(desiredPrice - results.productionCost).toFixed(2)}), mas verifique se o mercado aceita esse valor.
+                            💡 Dica: Seu lucro será maior (R$ {(desiredPrice - results.productionCost).toFixed(2)}), mas
+                            verifique se o mercado aceita esse valor.
                           </p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              );
+              )
             })()}
           </CardContent>
         </Card>
@@ -251,9 +311,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
             {/* Peças necessárias para recuperar investimento */}
             <div className="text-center p-4 bg-card rounded-lg border-2">
               <Package className="h-8 w-8 mx-auto mb-2 text-primary" />
-              <div className="text-3xl font-bold text-primary mb-1">
-                {profitPerUnit > 0 ? piecesToRecover : '—'}
-              </div>
+              <div className="text-3xl font-bold text-primary mb-1">{profitPerUnit > 0 ? piecesToRecover : '—'}</div>
               <p className="text-sm text-muted-foreground">
                 Peças necessárias para recuperar investimento da impressora
               </p>
@@ -262,9 +320,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
             {/* Tempo para recuperar (estimativa 30 peças/mês) */}
             <div className="text-center p-4 bg-card rounded-lg border-2">
               <Clock className="h-8 w-8 mx-auto mb-2 text-accent" />
-              <div className="text-3xl font-bold text-accent mb-1">
-                {profitPerUnit > 0 ? monthsToRecover.toFixed(1) : '—'}
-              </div>
+              <div className="text-3xl font-bold text-accent mb-1">{profitPerUnit > 0 ? monthsToRecover.toFixed(1) : '—'}</div>
               <p className="text-sm text-muted-foreground">
                 Meses para recuperar investimento (estimativa: 30 peças/mês)
               </p>
@@ -276,9 +332,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
               <div className="text-3xl font-bold text-success mb-1">
                 R$ {profitPerUnit > 0 ? monthlyProfit.toFixed(2) : '—'}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Lucro líquido mensal estimado (30 peças/mês)
-              </p>
+              <p className="text-sm text-muted-foreground">Lucro líquido mensal estimado (30 peças/mês)</p>
             </div>
           </div>
 
@@ -303,7 +357,8 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
 
           <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
             <p className="text-xs text-center text-muted-foreground">
-              💡 <strong>Dica:</strong> Os cálculos consideram uma média de 30 peças por mês. Ajuste sua produção e margem de lucro para atingir seus objetivos financeiros.
+              💡 <strong>Dica:</strong> Os cálculos consideram uma média de 30 peças por mês. Ajuste sua produção e
+              margem de lucro para atingir seus objetivos financeiros.
             </p>
           </div>
         </CardContent>
@@ -317,7 +372,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
         <CardContent className="pt-6">
           <div className="space-y-3">
             {costBreakdown.map((item, index) => {
-              const Icon = item.icon;
+              const Icon = item.icon
               return (
                 <div key={index}>
                   <div className="flex justify-between items-center">
@@ -329,7 +384,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
                   </div>
                   {index < costBreakdown.length - 1 && <Separator className="mt-3" />}
                 </div>
-              );
+              )
             })}
           </div>
 
@@ -360,19 +415,19 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
           <Button
             onClick={() => {
               if (onNavigateToQuote) {
-                onNavigateToQuote();
+                onNavigateToQuote()
                 // Rolagem para o topo para mostrar a aba de orçamento
                 setTimeout(() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }, 50);
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }, 50)
               } else {
                 // Fallback: tenta clicar no trigger da aba se o callback não for fornecido
-                const quoteTabTrigger = document.querySelector('[role="tab"][value="quote"]') as HTMLElement | null;
+                const quoteTabTrigger = document.querySelector('[role="tab"][value="quote"]') as HTMLElement | null
                 if (quoteTabTrigger) {
-                  quoteTabTrigger.click();
+                  quoteTabTrigger.click()
                   setTimeout(() => {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }, 50);
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }, 50)
                 }
               }
             }}
@@ -382,6 +437,85 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
           </Button>
         </div>
       )}
+
+      {/* --- NOVO FORMULÁRIO DE PUBLICAÇÃO --- */}
+      {results && (
+        <Card className="border-2 shadow-xl mt-6">
+          <CardHeader className="bg-gradient-primary text-primary-foreground">
+            <CardTitle className="flex items-center gap-2">
+              <Save className="h-5 w-5" />
+              Publicar Produto na Loja
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div>
+              <label className="text-sm font-medium">Preço de Venda (Automático)</label>
+              <Input
+                type="text"
+                disabled
+                value={`R$ ${results.finalPriceWithFee.toFixed(2)}`}
+                className="font-bold"
+              />
+            </div>
+            <div>
+              <label htmlFor="productName" className="text-sm font-medium">
+                Nome do Produto
+              </label>
+              <Input
+                id="productName"
+                placeholder="Ex: Vaso Articulado de Dragão"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="description" className="text-sm font-medium">
+                Descrição
+              </label>
+              <Textarea
+                id="description"
+                placeholder="Detalhes do produto, material, cores disponíveis..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="quantity" className="text-sm font-medium">
+                  Quantidade
+                </label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="0"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label htmlFor="imageUrl" className="text-sm font-medium">
+                  URL da Imagem
+                </label>
+                <Input
+                  id="imageUrl"
+                  placeholder="https://exemplo.com/imagem.png"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button onClick={handlePublishProduct} disabled={isLoading} className="w-full text-lg py-6">
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isLoading ? 'Publicando...' : 'Publicar na Loja'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {/* --- FIM DO NOVO FORMULÁRIO --- */}
     </div>
-  );
-};
+  )
+}
