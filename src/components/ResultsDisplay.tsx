@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea' // Importado
+// Removed Input and Textarea imports because the publication form is no longer used
 import { CalculationResults, CalculatorInputs } from '@/types/calculator'
 import {
   DollarSign,
@@ -16,11 +15,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-  Save, // Importado
-  Loader2, // Importado
 } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient' // <-- Importado
-import { useToast } from '@/components/ui/use-toast' // <-- Importado
+// supabase and useToast imports removed because publication form was removed
 
 /**
  * Mostra o resultado detalhado dos custos e métricas financeiras da impressão.
@@ -37,13 +33,7 @@ interface ResultsDisplayProps {
 }
 
 export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDisplayProps) => {
-  // Estados para o novo formulário de publicação
-  const [productName, setProductName] = useState('')
-  const [description, setDescription] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
-  const [quantity, setQuantity] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
+  // Publication form removed: no local state for product publishing
 
   // Se não houver resultados, instrui o usuário a preencher os campos.
   if (!results) {
@@ -77,52 +67,13 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
   const monthlyProfit = profitPerUnit * 30
   const roiPercentage = profitPerUnit > 0 ? (profitPerUnit / inputs.printerValue) * 100 : 0
 
-  // Função para publicar o produto na loja
-  const handlePublishProduct = async () => {
-    if (!productName || !results.finalPriceWithFee) {
-      toast({
-        title: 'Erro',
-        description: 'O nome do produto e o preço são obrigatórios.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setIsLoading(true)
-
-    const { data, error } = await supabase.from('products').insert([
-      {
-        name: productName,
-        description: description,
-        price: results.finalPriceWithFee, // Preço final da calculadora
-        quantity: Number(quantity),
-        images: imageUrl ? [imageUrl] : [], // A coluna 'images' é um array de texto
-        status: 'active', // Define como 'active' por padrão
-        // category_id: 'UUID_DA_CATEGORIA_3D_AQUI' // Opcional
-      },
-    ])
-
-    setIsLoading(false)
-
-    if (error) {
-      toast({
-        title: 'Erro ao publicar',
-        description: `Ocorreu um erro: ${error.message}.`,
-        variant: 'destructive',
-      })
-      console.error('Erro do Supabase:', error)
-    } else {
-      toast({
-        title: 'Sucesso!',
-        description: `Produto "${productName}" publicado na loja.`,
-      })
-      // Limpa os campos após o sucesso
-      setProductName('')
-      setDescription('')
-      setImageUrl('')
-      setQuantity(1)
-    }
-  }
+  // Ajuste de exibição do preço final: se roundPrice for verdadeiro, arredonda o valor final
+  const displayFinalPrice = inputs.roundPrice
+    ? Math.round(results.finalPriceWithFee)
+    : results.finalPriceWithFee
+  const displayFinalPricePerUnit = inputs.roundPrice
+    ? Math.round(displayFinalPrice / (inputs.quantity > 0 ? inputs.quantity : 1))
+    : results.finalPricePerUnit
 
   return (
     <div className="space-y-6">
@@ -137,7 +88,9 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
           </CardHeader>
           <CardContent className="pt-6">
             {(() => {
-              const suggestedPrice = results.finalPriceWithFee
+              // Se roundPrice for verdadeiro, usamos o preço final arredondado para comparação
+              const basePrice = inputs.roundPrice ? displayFinalPrice : results.finalPriceWithFee
+              const suggestedPrice = basePrice
               const desiredPrice = inputs.desiredPrice!
               const difference = desiredPrice - suggestedPrice
               const percentageDiff = (difference / suggestedPrice) * 100
@@ -185,7 +138,9 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-card p-3 rounded border">
                           <p className="text-xs text-muted-foreground mb-1">Preço Sugerido</p>
-                          <p className="text-lg font-bold">R$ {suggestedPrice.toFixed(2)}</p>
+                          <p className="text-lg font-bold">
+                            R$ {inputs.roundPrice ? suggestedPrice.toFixed(0) : suggestedPrice.toFixed(2)}
+                          </p>
                         </div>
                         <div className="bg-card p-3 rounded border">
                           <p className="text-xs text-muted-foreground mb-1">Seu Preço</p>
@@ -270,12 +225,17 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {results.finalPriceWithFee.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              R$ {inputs.roundPrice ? displayFinalPrice.toFixed(0) : results.finalPriceWithFee.toFixed(2)}
+            </div>
             <p className="text-xs opacity-80 mt-1">
               {inputs.additionalFee > 0 ? `Com ${inputs.additionalFee}% de taxa` : 'Sem taxas adicionais'}
             </p>
             {/* Mostra o preço final por unidade */}
-            <p className="text-xs opacity-80 mt-1">R$ {results.finalPricePerUnit.toFixed(2)} por unidade</p>
+            <p className="text-xs opacity-80 mt-1">
+              R$ {inputs.roundPrice ? displayFinalPricePerUnit.toFixed(0) : results.finalPricePerUnit.toFixed(2)} por
+              unidade
+            </p>
           </CardContent>
         </Card>
 
@@ -320,7 +280,9 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
             {/* Tempo para recuperar (estimativa 30 peças/mês) */}
             <div className="text-center p-4 bg-card rounded-lg border-2">
               <Clock className="h-8 w-8 mx-auto mb-2 text-accent" />
-              <div className="text-3xl font-bold text-accent mb-1">{profitPerUnit > 0 ? monthsToRecover.toFixed(1) : '—'}</div>
+              <div className="text-3xl font-bold text-accent mb-1">
+                {profitPerUnit > 0 ? monthsToRecover.toFixed(1) : '—'}
+              </div>
               <p className="text-sm text-muted-foreground">
                 Meses para recuperar investimento (estimativa: 30 peças/mês)
               </p>
@@ -438,84 +400,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
         </div>
       )}
 
-      {/* --- NOVO FORMULÁRIO DE PUBLICAÇÃO --- */}
-      {results && (
-        <Card className="border-2 shadow-xl mt-6">
-          <CardHeader className="bg-gradient-primary text-primary-foreground">
-            <CardTitle className="flex items-center gap-2">
-              <Save className="h-5 w-5" />
-              Publicar Produto na Loja
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div>
-              <label className="text-sm font-medium">Preço de Venda (Automático)</label>
-              <Input
-                type="text"
-                disabled
-                value={`R$ ${results.finalPriceWithFee.toFixed(2)}`}
-                className="font-bold"
-              />
-            </div>
-            <div>
-              <label htmlFor="productName" className="text-sm font-medium">
-                Nome do Produto
-              </label>
-              <Input
-                id="productName"
-                placeholder="Ex: Vaso Articulado de Dragão"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="description" className="text-sm font-medium">
-                Descrição
-              </label>
-              <Textarea
-                id="description"
-                placeholder="Detalhes do produto, material, cores disponíveis..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="quantity" className="text-sm font-medium">
-                  Quantidade
-                </label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="0"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label htmlFor="imageUrl" className="text-sm font-medium">
-                  URL da Imagem
-                </label>
-                <Input
-                  id="imageUrl"
-                  placeholder="https://exemplo.com/imagem.png"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button onClick={handlePublishProduct} disabled={isLoading} className="w-full text-lg py-6">
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isLoading ? 'Publicando...' : 'Publicar na Loja'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-      {/* --- FIM DO NOVO FORMULÁRIO --- */}
+      {/* Formulário de publicação removido */}
     </div>
   )
 }

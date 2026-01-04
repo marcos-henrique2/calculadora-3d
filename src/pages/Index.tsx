@@ -32,7 +32,7 @@ const Index = () => {
     printTimeMinutes: 0,
     printerPower: 250,
     energyRate: 0.75,
-    printerValue: 3000,
+    printerValue: 5000,
     printerLifespan: 5000,
 
     // Trabalho e Estratégia
@@ -49,6 +49,7 @@ const Index = () => {
 
     // Comparação de Preço
     desiredPrice: undefined,
+    roundPrice: false,
   });
 
   const [results, setResults] = useState<CalculationResults | null>(null);

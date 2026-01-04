@@ -32,6 +32,12 @@ export interface CalculatorInputs {
 
   // Comparação de Preço (opcional)
   desiredPrice?: number;
+
+  /**
+   * Indica se o preço final deve ser arredondado para um valor inteiro.
+   * Quando verdadeiro, o valor final mostrado será arredondado usando Math.round().
+   */
+  roundPrice: boolean;
 }
 
 export interface CalculationResults {

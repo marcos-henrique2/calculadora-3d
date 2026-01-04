@@ -14,6 +14,14 @@ interface CalculatorFormProps {
   onCalculate: () => void;
 }
 
+/**
+ * Formulário principal da calculadora de custos.
+ * Todos os campos numéricos foram ajustados para permitir que o usuário apague
+ * completamente o valor atual sem que o número “0” apareça imediatamente. Se o
+ * campo estiver vazio, o valor interno é salvo como 0; caso contrário, o
+ * texto digitado é convertido para número. Essa abordagem facilita a edição
+ * utilizando apenas a tecla Backspace.
+ */
 export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFormProps) => {
   const handleInputChange = (field: keyof CalculatorInputs, value: string | number | boolean) => {
     setInputs({ ...inputs, [field]: value });
@@ -55,8 +63,8 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               id="quantity"
               type="number"
               min="1"
-              value={inputs.quantity}
-              onChange={(e) => handleInputChange("quantity", Number(e.target.value))}
+              value={inputs.quantity === 0 ? "" : inputs.quantity}
+              onChange={(e) => handleInputChange("quantity", e.target.value === "" ? 0 : Number(e.target.value))}
             />
             <InputWithLabel
               label="Material Utilizado"
@@ -98,8 +106,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.filamentPrice}
-              onChange={(e) => handleInputChange("filamentPrice", Number(e.target.value))}
+              value={inputs.filamentPrice === 0 ? "" : inputs.filamentPrice}
+              onChange={(e) =>
+                handleInputChange(
+                  "filamentPrice",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Filamento Usado (g)"
@@ -107,8 +120,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.1"
               min="0"
-              value={inputs.filamentUsed}
-              onChange={(e) => handleInputChange("filamentUsed", Number(e.target.value))}
+              value={inputs.filamentUsed === 0 ? "" : inputs.filamentUsed}
+              onChange={(e) =>
+                handleInputChange(
+                  "filamentUsed",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
           </div>
           <div className="space-y-2">
@@ -119,8 +137,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
                 id="printTimeHours"
                 type="number"
                 min="0"
-                value={inputs.printTimeHours}
-                onChange={(e) => handleInputChange("printTimeHours", Number(e.target.value))}
+                value={inputs.printTimeHours === 0 ? "" : inputs.printTimeHours}
+                onChange={(e) =>
+                  handleInputChange(
+                    "printTimeHours",
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
               />
               <InputWithLabel
                 label="Minutos"
@@ -128,8 +151,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
                 type="number"
                 min="0"
                 max="59"
-                value={inputs.printTimeMinutes}
-                onChange={(e) => handleInputChange("printTimeMinutes", Number(e.target.value))}
+                value={inputs.printTimeMinutes === 0 ? "" : inputs.printTimeMinutes}
+                onChange={(e) =>
+                  handleInputChange(
+                    "printTimeMinutes",
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
               />
             </div>
           </div>
@@ -139,8 +167,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               id="printerPower"
               type="number"
               min="0"
-              value={inputs.printerPower}
-              onChange={(e) => handleInputChange("printerPower", Number(e.target.value))}
+              value={inputs.printerPower === 0 ? "" : inputs.printerPower}
+              onChange={(e) =>
+                handleInputChange(
+                  "printerPower",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Tarifa de Energia (R$/kWh)"
@@ -148,8 +181,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.energyRate}
-              onChange={(e) => handleInputChange("energyRate", Number(e.target.value))}
+              value={inputs.energyRate === 0 ? "" : inputs.energyRate}
+              onChange={(e) =>
+                handleInputChange(
+                  "energyRate",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Valor da Impressora (R$)"
@@ -157,16 +195,26 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.printerValue}
-              onChange={(e) => handleInputChange("printerValue", Number(e.target.value))}
+              value={inputs.printerValue === 0 ? "" : inputs.printerValue}
+              onChange={(e) =>
+                handleInputChange(
+                  "printerValue",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Vida Útil da Impressora (h)"
               id="printerLifespan"
               type="number"
               min="1"
-              value={inputs.printerLifespan}
-              onChange={(e) => handleInputChange("printerLifespan", Number(e.target.value))}
+              value={inputs.printerLifespan === 0 ? "" : inputs.printerLifespan}
+              onChange={(e) =>
+                handleInputChange(
+                  "printerLifespan",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
           </div>
         </CardContent>
@@ -191,8 +239,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.hourlyRate}
-              onChange={(e) => handleInputChange("hourlyRate", Number(e.target.value))}
+              value={inputs.hourlyRate === 0 ? "" : inputs.hourlyRate}
+              onChange={(e) =>
+                handleInputChange(
+                  "hourlyRate",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Tempo de Trabalho Ativo (h)"
@@ -200,8 +253,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.1"
               min="0"
-              value={inputs.activeWorkTime}
-              onChange={(e) => handleInputChange("activeWorkTime", Number(e.target.value))}
+              value={inputs.activeWorkTime === 0 ? "" : inputs.activeWorkTime}
+              onChange={(e) =>
+                handleInputChange(
+                  "activeWorkTime",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Custo de Acabamento (R$)"
@@ -209,8 +267,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.finishingCost}
-              onChange={(e) => handleInputChange("finishingCost", Number(e.target.value))}
+              value={inputs.finishingCost === 0 ? "" : inputs.finishingCost}
+              onChange={(e) =>
+                handleInputChange(
+                  "finishingCost",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Custo de Manutenção (R$/h)"
@@ -218,8 +281,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.01"
               min="0"
-              value={inputs.maintenanceCost}
-              onChange={(e) => handleInputChange("maintenanceCost", Number(e.target.value))}
+              value={inputs.maintenanceCost === 0 ? "" : inputs.maintenanceCost}
+              onChange={(e) =>
+                handleInputChange(
+                  "maintenanceCost",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Taxa de Falha (%)"
@@ -228,8 +296,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               step="0.1"
               min="0"
               max="100"
-              value={inputs.failureRate}
-              onChange={(e) => handleInputChange("failureRate", Number(e.target.value))}
+              value={inputs.failureRate === 0 ? "" : inputs.failureRate}
+              onChange={(e) =>
+                handleInputChange(
+                  "failureRate",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <div className="space-y-2">
               <Label htmlFor="complexity">Complexidade da Peça</Label>
@@ -267,8 +340,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.1"
               min="0"
-              value={inputs.profitMargin}
-              onChange={(e) => handleInputChange("profitMargin", Number(e.target.value))}
+              value={inputs.profitMargin === 0 ? "" : inputs.profitMargin}
+              onChange={(e) =>
+                handleInputChange(
+                  "profitMargin",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
             />
             <InputWithLabel
               label="Taxa Adicional - Marketplace (% opcional)"
@@ -276,8 +354,13 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               type="number"
               step="0.1"
               min="0"
-              value={inputs.additionalFee}
-              onChange={(e) => handleInputChange("additionalFee", Number(e.target.value))}
+              value={inputs.additionalFee === 0 ? "" : inputs.additionalFee}
+              onChange={(e) =>
+                handleInputChange(
+                  "additionalFee",
+                  e.target.value === "" ? 0 : Number(e.target.value)
+                )
+              }
               placeholder="Ex: 12% Shopee, 5% Etsy"
             />
           </div>
@@ -290,13 +373,30 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               min="0"
               value={inputs.desiredPrice || ""}
               onChange={(e) =>
-                handleInputChange("desiredPrice", e.target.value ? Number(e.target.value) : undefined)
+                handleInputChange(
+                  "desiredPrice",
+                  e.target.value ? Number(e.target.value) : undefined
+                )
               }
               placeholder="Deixe vazio para usar o preço calculado"
             />
             <p className="text-xs text-muted-foreground mt-2">
               💡 Preencha para comparar seu preço com o valor sugerido pelo cálculo
             </p>
+          </div>
+
+          {/* Opção para arredondar o preço final */}
+          <div className="pt-4 flex items-center space-x-2">
+            <Checkbox
+              id="roundPrice"
+              checked={!!inputs.roundPrice}
+              onCheckedChange={(checked) =>
+                handleInputChange("roundPrice", !!checked)
+              }
+            />
+            <Label htmlFor="roundPrice" className="cursor-pointer">
+              Arredondar preço final (valor inteiro)
+            </Label>
           </div>
         </CardContent>
       </Card>

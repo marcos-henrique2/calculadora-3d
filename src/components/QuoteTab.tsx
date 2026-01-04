@@ -119,9 +119,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
   };
 
   const handleGeneratePDF = () => {
-    const budgetFromList = selectedBudgetId
-      ? savedBudgets.find((b) => b.id === selectedBudgetId)
-      : null;
+    const budgetFromList = selectedBudgetId ? savedBudgets.find((b) => b.id === selectedBudgetId) : null;
     const activeInputs = budgetFromList ? budgetFromList.inputs : inputs;
     const activeResults = budgetFromList ? budgetFromList.results : results;
     if (!activeResults) {
@@ -160,9 +158,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
           {(() => {
-            const selectedBudget = selectedBudgetId
-              ? savedBudgets.find((b) => b.id === selectedBudgetId)
-              : null;
+            const selectedBudget = selectedBudgetId ? savedBudgets.find((b) => b.id === selectedBudgetId) : null;
             const activeInputs = selectedBudget ? selectedBudget.inputs : inputs;
             const activeResults = selectedBudget ? selectedBudget.results : results;
 
@@ -173,6 +169,16 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                 </div>
               );
             }
+
+            // Calcula os preços a serem exibidos considerando a opção de arredondamento
+            const round = activeInputs.roundPrice;
+            const displayFinalPrice = round
+              ? Math.round(activeResults.finalPriceWithFee)
+              : activeResults.finalPriceWithFee;
+            const displayFinalPriceWithoutFee = round
+              ? Math.round(activeResults.finalPrice)
+              : activeResults.finalPrice;
+            const additionalDifference = displayFinalPrice - displayFinalPriceWithoutFee;
 
             return (
               <>
@@ -186,9 +192,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Cliente</p>
-                        <p className="font-semibold">
-                          {activeInputs.clientName || "—"}
-                        </p>
+                        <p className="font-semibold">{activeInputs.clientName || "—"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Peça</p>
@@ -196,9 +200,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Quantidade</p>
-                        <p className="font-semibold">
-                          {activeInputs.quantity} unidade(s)
-                        </p>
+                        <p className="font-semibold">{activeInputs.quantity} unidade(s)</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Material</p>
@@ -216,23 +218,17 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Custo de Produção:</span>
-                      <span className="font-medium">
-                        R$ {activeResults.productionCost.toFixed(2)}
-                      </span>
+                      <span className="font-medium">R$ {activeResults.productionCost.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Custo por Unidade:</span>
-                      <span className="font-medium">
-                        R$ {activeResults.costPerUnit.toFixed(2)}
-                      </span>
+                      <span className="font-medium">R$ {activeResults.costPerUnit.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
                         Margem de Lucro ({activeInputs.profitMargin}%):
                       </span>
-                      <span className="font-medium text-success">
-                        R$ {activeResults.profitAmount.toFixed(2)}
-                      </span>
+                      <span className="font-medium text-success">R$ {activeResults.profitAmount.toFixed(2)}</span>
                     </div>
                     {activeInputs.additionalFee > 0 && (
                       <div className="flex justify-between text-sm">
@@ -240,11 +236,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                           Taxa Adicional ({activeInputs.additionalFee}%):
                         </span>
                         <span className="font-medium">
-                          R$
-                          {(
-                            activeResults.finalPriceWithFee -
-                            activeResults.finalPrice
-                          ).toFixed(2)}
+                          R$ {additionalDifference.toFixed(round ? 0 : 2)}
                         </span>
                       </div>
                     )}
@@ -256,7 +248,7 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">PREÇO TOTAL:</span>
                       <span className="text-2xl font-bold">
-                        R$ {activeResults.finalPriceWithFee.toFixed(2)}
+                        R$ {round ? displayFinalPrice.toFixed(0) : activeResults.finalPriceWithFee.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -306,68 +298,68 @@ export const QuoteTab = ({ results, inputs, onLoadBudget }: QuoteTabProps) => {
           <CardTitle>Orçamentos Salvos</CardTitle>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
-          {savedBudgets.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Nenhum orçamento salvo ainda.
-            </p>
-          )}
-          {savedBudgets.map((budget) => (
-            <div
-              key={budget.id}
-              className={`p-4 border rounded-lg flex flex-col gap-2 cursor-pointer ${
-                selectedBudgetId === budget.id ? "bg-muted/70" : "bg-muted"
-              }`}
-              onClick={() => setSelectedBudgetId(budget.id)}
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium flex items-center gap-1">
-                    <User className="h-4 w-4 text-primary" />
-                    {budget.inputs.clientName || "Sem nome"} —{" "}
-                    {budget.inputs.pieceName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Criado em {new Date(budget.createdAt).toLocaleString()}
-                  </p>
+          {savedBudgets.length === 0 && <p className="text-sm text-muted-foreground">Nenhum orçamento salvo ainda.</p>}
+          {savedBudgets.map((budget) => {
+            const round = budget.inputs.roundPrice;
+            const budgetDisplayPrice = round
+              ? Math.round(budget.results.finalPriceWithFee)
+              : budget.results.finalPriceWithFee;
+            return (
+              <div
+                key={budget.id}
+                className={`p-4 border rounded-lg flex flex-col gap-2 cursor-pointer ${
+                  selectedBudgetId === budget.id ? "bg-muted/70" : "bg-muted"
+                }`}
+                onClick={() => setSelectedBudgetId(budget.id)}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium flex items-center gap-1">
+                      <User className="h-4 w-4 text-primary" />
+                      {budget.inputs.clientName || "Sem nome"} — {budget.inputs.pieceName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Criado em {new Date(budget.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onLoadBudget) {
+                          onLoadBudget(budget);
+                        }
+                      }}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteBudget(budget.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />Excluir
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onLoadBudget) {
-                        onLoadBudget(budget);
-                      }
-                    }}
-                  >
-                    <Pencil className="h-4 w-4 mr-1" />Editar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteBudget(budget.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />Excluir
-                  </Button>
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-4 w-4" /> {Math.floor(budget.results.totalTime)}h{' '}
+                    {Math.round((budget.results.totalTime % 1) * 60)}min
+                  </span>
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" /> R${' '}
+                    {round ? budgetDisplayPrice.toFixed(0) : budget.results.finalPriceWithFee.toFixed(2)}
+                  </span>
                 </div>
               </div>
-              <div className="flex justify-between text-sm mt-2">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-4 w-4" />{" "}
-                  {Math.floor(budget.results.totalTime)}h{" "}
-                  {Math.round((budget.results.totalTime % 1) * 60)}min
-                </span>
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <TrendingUp className="h-4 w-4" /> R${" "}
-                  {budget.results.finalPriceWithFee.toFixed(2)}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>
