@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculatorForm } from "@/components/CalculatorForm";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { QuoteTab } from "@/components/QuoteTab";
+import { CalculationCard } from "@/components/CalculationCard";  // novo card
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 import { calculateCosts } from "@/utils/calculator";
 import { Calculator, FileText, Printer } from "lucide-react";
@@ -10,14 +11,17 @@ import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { toast } = useToast();
+
   // Estado de seleção de aba (calculator ou quote) com persistência em localStorage
   const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('activeTab');
-      return stored ?? 'calculator';
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("activeTab");
+      return stored ?? "calculator";
     }
-    return 'calculator';
+    return "calculator";
   });
+
+  // Entradas padrão
   const [inputs, setInputs] = useState<CalculatorInputs>({
     // Dados da Peça
     pieceName: "",
@@ -41,7 +45,7 @@ const Index = () => {
     finishingCost: 0,
     maintenanceCost: 2,
     failureRate: 5,
-    complexity: 'simple',
+    complexity: "simple",
     profitMargin: 30,
 
     // Taxas
@@ -50,16 +54,25 @@ const Index = () => {
     // Comparação de Preço
     desiredPrice: undefined,
     roundPrice: false,
+
+    // Custos fixos (caso use embalagem/extras)
+    packagingCost: 0,
+    extraCost: 0,
   });
 
   const [results, setResults] = useState<CalculationResults | null>(null);
 
+  // Estados para exibir o card interativo após o cálculo
+  const [showCard, setShowCard] = useState(false);
+  const [cardInputs, setCardInputs] = useState<CalculatorInputs | null>(null);
+  const [cardResults, setCardResults] = useState<CalculationResults | null>(null);
+
   const handleCalculate = () => {
     if (!inputs.pieceName.trim()) {
       toast({
-        title: "Atenção",
-        description: "Por favor, preencha o nome da peça",
-        variant: "destructive",
+      title: "Atenção",
+      description: "Por favor, preencha o nome da peça",
+      variant: "destructive",
       });
       return;
     }
@@ -73,25 +86,42 @@ const Index = () => {
     }
     const calculatedResults = calculateCosts(inputs);
     setResults(calculatedResults);
+
+    // preenche o card e exibe
+    setCardInputs(inputs);
+    setCardResults(calculatedResults);
+    setShowCard(true);
+
     toast({
       title: "Cálculo realizado!",
-      description: "Custos calculados com sucesso. Confira os resultados abaixo.",
+      description: "Custos calculados com sucesso.",
     });
-    // Scroll suave até os resultados
+
+    // scroll suave até resultados (não utilizado se exibir card)
     setTimeout(() => {
-      const resultsSection = document.getElementById('results-section');
-      if (resultsSection) {
-        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const section = document.getElementById("results-section");
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 100);
   };
 
-  // Persiste a aba ativa no localStorage sempre que mudar
+  // Atualiza localStorage com a aba ativa
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('activeTab', activeTab);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeTab", activeTab);
     }
   }, [activeTab]);
+
+  // Função chamada pelo card ao gerar orçamento
+  const handleGenerateQuoteFromCard = (
+    updatedInputs: CalculatorInputs,
+    updatedResults: CalculationResults
+  ) => {
+    setInputs(updatedInputs);
+    setResults(updatedResults);
+    setActiveTab("quote");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -132,25 +162,36 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
+          {/* Aba de Cálculo */}
           <TabsContent value="calculator" className="space-y-8">
             <CalculatorForm
               inputs={inputs}
               setInputs={setInputs}
               onCalculate={handleCalculate}
             />
-            <div id="results-section">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <Calculator className="h-6 w-6" />
-                Resultados do Cálculo
-              </h2>
-              <ResultsDisplay
-                results={results}
-                inputs={inputs}
-                onNavigateToQuote={() => setActiveTab('quote')}
+            {/* Se o cálculo foi realizado, exibe o card; caso contrário, exibe o resultado padrão (ResultsDisplay) */}
+            {showCard && cardInputs && cardResults ? (
+              <CalculationCard
+                inputs={cardInputs}
+                results={cardResults}
+                onGenerateQuote={handleGenerateQuoteFromCard}
               />
-            </div>
+            ) : (
+              <div id="results-section">
+                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                  <Calculator className="h-6 w-6" />
+                  Resultados do Cálculo
+                </h2>
+                <ResultsDisplay
+                  results={results}
+                  inputs={inputs}
+                  onNavigateToQuote={() => setActiveTab("quote")}
+                />
+              </div>
+            )}
           </TabsContent>
 
+          {/* Aba de Orçamento */}
           <TabsContent value="quote">
             <QuoteTab
               results={results}
@@ -159,12 +200,15 @@ const Index = () => {
                 // Carrega os valores do orçamento salvo e muda para a aba de cálculo
                 setInputs(budget.inputs);
                 setResults(budget.results);
-                setActiveTab('calculator');
-                // Rola até a calculadora
+                setShowCard(false);
+                setActiveTab("calculator");
                 setTimeout(() => {
-                  const formSection = document.getElementById('results-section');
+                  const formSection = document.getElementById("results-section");
                   if (formSection) {
-                    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    formSection.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
                   }
                 }, 100);
               }}
@@ -176,7 +220,10 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-card border-t mt-16 py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Calculadora 3D Pro - Ferramenta profissional para cálculo de custos de impressão 3D</p>
+          <p>
+            Calculadora 3D Pro - Ferramenta profissional para cálculo de custos
+            de impressão 3D
+          </p>
         </div>
       </footer>
     </div>

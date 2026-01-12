@@ -1,12 +1,11 @@
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 
 /**
- * Calcula os custos de produção e preços de venda de uma peça impressa.
- *
- * O cálculo considera custos diretos (filamento, energia elétrica, desgaste da
- * impressora, mão‑de‑obra, manutenção) e aplica multiplicadores de
- * complexidade, taxa de falha, margem de lucro e taxas adicionais.
- * Novos campos foram adicionados para fornecer lucro e preço final por peça.
+ * Calcula os custos de produção e preços de venda de uma peça impressa,
+ * incluindo custos de embalagem e extras. O cálculo considera custos
+ * diretos (filamento, energia elétrica, desgaste da impressora, mão‑de‑obra,
+ * manutenção), aplica multiplicadores de complexidade, taxa de falha,
+ * margem de lucro, taxas adicionais e soma custos fixos (embalagem e extras).
  */
 export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => {
   // Converter tempo total de impressão para horas decimais
@@ -20,7 +19,6 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   const energyCost = energyConsumption * inputs.energyRate;
 
   // Custo de desgaste da impressora (valor da impressora dividido pela vida útil).
-  // Se a vida útil for zero ou não informada, evitamos divisão por zero atribuindo custo zero.
   let wearCost = 0;
   if (inputs.printerLifespan && inputs.printerLifespan > 0) {
     wearCost = (inputs.printerValue / inputs.printerLifespan) * printTime;
@@ -34,6 +32,11 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   // Custo de manutenção (custo por hora × horas de impressão)
   const maintenanceTotalCost = inputs.maintenanceCost * printTime;
 
+  // Custo de embalagem e custos extras (custos fixos por unidade)
+  // Se o usuário não informar, tratamos como 0 para não influenciar o cálculo.
+  const packagingCost = inputs.packagingCost ?? 0;
+  const extraCost = inputs.extraCost ?? 0;
+
   // Multiplicador de complexidade
   const complexityMultipliers = {
     simple: 1.0,
@@ -43,18 +46,25 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   const complexityMultiplier = complexityMultipliers[inputs.complexity];
 
   // Cálculo do custo com complexidade:
-  // em vez de multiplicar todo o custo base, aplicamos o multiplicador
-  // apenas aos custos relacionados à impressão (filamento, energia, desgaste e manutenção).
+  // aplicamos o multiplicador apenas aos custos relacionados à impressão
+  // (filamento, energia, desgaste e manutenção). Somamos custos de mão‑de‑obra,
+  // acabamento, embalagem e extras fora do multiplicador.
   const printRelatedCost = filamentCost + energyCost + wearCost + maintenanceTotalCost;
-  const costWithComplexity = printRelatedCost * complexityMultiplier + laborCost + inputs.finishingCost;
+  const costWithComplexity =
+    printRelatedCost * complexityMultiplier +
+    laborCost +
+    inputs.finishingCost +
+    // Incluímos custos fixos (embalagem e extras) fora do multiplicador
+    packagingCost +
+    extraCost;
 
-  // Custo de falha (percentual do custo já ajustado pela complexidade)
+  // Custo de falha (% sobre o custo ajustado)
   const failureCost = costWithComplexity * (inputs.failureRate / 100);
 
   // Custo total de produção
   const productionCost = costWithComplexity + failureCost;
 
-  // Custo de produção por unidade
+  // Custo por unidade (divide pelo número de unidades, garantindo ao menos 1)
   const quantity = inputs.quantity > 0 ? inputs.quantity : 1;
   const costPerUnit = productionCost / quantity;
 
@@ -63,7 +73,7 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   // Lucro por unidade
   const profitPerUnit = profitAmount / quantity;
 
-  // Preço final sem taxa
+  // Preço final sem taxa de marketplace
   const finalPrice = productionCost + profitAmount;
 
   // Preço final com taxa adicional de marketplace (caso exista)
@@ -82,6 +92,8 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
     maintenanceTotalCost,
     failureCost,
     complexityMultiplier,
+    packagingCost,
+    extraCost,
     productionCost,
     costPerUnit,
     profitAmount,

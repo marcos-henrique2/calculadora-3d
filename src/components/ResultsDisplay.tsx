@@ -50,6 +50,7 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
   }
 
   // Lista para o detalhamento de custos básicos
+  // Lista para o detalhamento de custos básicos. Inclui embalagem e custos extras.
   const costBreakdown = [
     { label: 'Filamento', value: results.filamentCost, icon: DollarSign },
     { label: 'Energia Elétrica', value: results.energyCost, icon: DollarSign },
@@ -57,6 +58,8 @@ export const ResultsDisplay = ({ results, inputs, onNavigateToQuote }: ResultsDi
     { label: 'Mão de Obra', value: results.laborCost, icon: DollarSign },
     { label: 'Manutenção', value: results.maintenanceTotalCost, icon: DollarSign },
     { label: 'Acabamento', value: inputs.finishingCost, icon: DollarSign },
+    { label: 'Embalagem', value: results.packagingCost, icon: DollarSign },
+    { label: 'Extras', value: results.extraCost, icon: DollarSign },
     { label: 'Margem de Falha', value: results.failureCost, icon: AlertCircle },
   ]
 

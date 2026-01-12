@@ -23,6 +23,18 @@ export interface CalculatorInputs {
   activeWorkTime: number;
   finishingCost: number;
   maintenanceCost: number;
+  /**
+   * Custo de embalagem por unidade (R$). Este valor representa os gastos com
+   * caixas, sacolas ou material de embalagem adicional para a peça impressa.
+   */
+  packagingCost: number;
+
+  /**
+   * Custos extras diversos (R$). Use este campo para incluir despesas
+   * adicionais que não se enquadram nos demais custos, como adesivos,
+   * cartões de visita ou pequenos acessórios.
+   */
+  extraCost: number;
   failureRate: number;
   complexity: 'simple' | 'intermediate' | 'high';
   profitMargin: number;
@@ -47,6 +59,11 @@ export interface CalculationResults {
   wearCost: number;
   laborCost: number;
   maintenanceTotalCost: number;
+  /** Custo de embalagem por unidade */
+  packagingCost: number;
+
+  /** Custos extras diversos por unidade */
+  extraCost: number;
   failureCost: number;
   complexityMultiplier: number;
 
