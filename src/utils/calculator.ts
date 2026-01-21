@@ -6,6 +6,12 @@ import { CalculatorInputs, CalculationResults } from "@/types/calculator";
  * diretos (filamento, energia elétrica, desgaste da impressora, mão‑de‑obra,
  * manutenção), aplica multiplicadores de complexidade, taxa de falha,
  * margem de lucro, taxas adicionais e soma custos fixos (embalagem e extras).
+ *
+ * Esta implementação foi estendida para calcular também o preço de atacado
+ * e o preço de atacado por unidade. O preço de atacado aplica o desconto
+ * definido em `inputs.wholesaleDiscount` sobre o preço final com taxa
+ * (finalPriceWithFee). Isso permite que outros componentes consultem
+ * `wholesalePrice` e `wholesalePricePerUnit` ao construir orçamentos.
  */
 export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => {
   // Converter tempo total de impressão para horas decimais
@@ -84,6 +90,12 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   // Tempo total (impressão + trabalho ativo)
   const totalTime = printTime + inputs.activeWorkTime;
 
+  // Cálculo do preço de atacado:
+  // Aplica o desconto de atacado (percentage) ao preço final com taxa.
+  const wholesaleDiscount = inputs.wholesaleDiscount ?? 0;
+  const wholesalePrice = finalPriceWithFee * (1 - wholesaleDiscount / 100);
+  const wholesalePricePerUnit = wholesalePrice / quantity;
+
   return {
     filamentCost,
     energyCost,
@@ -102,5 +114,7 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
     totalTime,
     profitPerUnit,
     finalPricePerUnit,
+    wholesalePrice,
+    wholesalePricePerUnit,
   };
 };

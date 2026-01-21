@@ -59,6 +59,16 @@ export interface CalculatorInputs {
    * Se undefined ou 0, nenhum desconto é aplicado.
    */
   wholesaleDiscount?: number;
+
+  /**
+   * Indica se o preço de atacado deve ser usado ao gerar orçamentos e exibir
+   * valores na lista de orçamento. Quando verdadeiro e `wholesaleDiscount`
+   * estiver definido e maior que 0, os valores totais e unitários serão
+   * calculados aplicando o desconto de atacado. Caso contrário, o preço
+   * normal de venda será utilizado. Este campo é opcional para manter a
+   * compatibilidade com versões anteriores.
+   */
+  useWholesalePrice?: boolean;
 }
 
 export interface CalculationResults {
@@ -90,4 +100,21 @@ export interface CalculationResults {
 
   /** Preço final por unidade (com margem e taxa) */
   finalPricePerUnit: number;
+
+  /**
+   * Preço final total com desconto de atacado aplicado. Este valor inclui a
+   * margem de lucro, taxas adicionais e aplica o percentual de desconto
+   * definido em `wholesaleDiscount` nos dados de entrada. Se o desconto de
+   * atacado não estiver definido ou for igual a zero, este campo será igual
+   * a `finalPriceWithFee`.
+   */
+  wholesalePrice: number;
+
+  /**
+   * Preço final por unidade com desconto de atacado aplicado. Calculado
+   * dividindo `wholesalePrice` pela quantidade de peças. Se o desconto de
+   * atacado não estiver definido ou for igual a zero, este campo será igual
+   * a `finalPricePerUnit`.
+   */
+  wholesalePricePerUnit: number;
 }

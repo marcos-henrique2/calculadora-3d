@@ -5,6 +5,7 @@ import { InputWithLabel } from "@/components/ui/input-with-label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 import { calculateCosts } from "@/utils/calculator";
 import { DollarSign, TrendingUp, X, Info } from "lucide-react";
@@ -13,7 +14,9 @@ import { DollarSign, TrendingUp, X, Info } from "lucide-react";
  * Componente que exibe um cartão com o valor sugerido de venda, lucro líquido,
  * custo de produção e controles para ajustar a margem de lucro (markup) via
  * slider ou informar um preço final manualmente. Também permite abrir um
- * modal com o detalhamento de custos e gerar um orçamento.
+ * modal com o detalhamento de custos, gerar um orçamento e adicionar o item
+ * à lista de orçamento. Foi adicionado um controle para decidir se o preço
+ * de atacado será utilizado ao gerar o orçamento (PDF ou lista de itens).
  */
 interface CalculationCardProps {
   /** Entradas originais da calculadora após o cálculo inicial */
@@ -36,9 +39,7 @@ export const CalculationCard = ({
   const [markup, setMarkup] = useState<number>(inputs.profitMargin);
 
   // Estado local para preço manual. Quando undefined, usa o valor calculado automaticamente
-  const [manualPrice, setManualPrice] = useState<number | undefined>(
-    inputs.desiredPrice
-  );
+  const [manualPrice, setManualPrice] = useState<number | undefined>(inputs.desiredPrice);
 
   // Estado para controlar exibição do modal de detalhamento de custos
   const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
@@ -89,8 +90,7 @@ export const CalculationCard = ({
   const resellerProfit = finalPrice - wholesalePrice;
 
   // Margem de lucro do revendedor em relação ao preço de atacado
-  const resellerMargin =
-    wholesalePrice > 0 ? (resellerProfit / wholesalePrice) * 100 : 0;
+  const resellerMargin = wholesalePrice > 0 ? (resellerProfit / wholesalePrice) * 100 : 0;
 
   // Handler para alteração do slider de markup
   const handleSliderChange = (value: number[]) => {
@@ -110,12 +110,17 @@ export const CalculationCard = ({
     }
   };
 
+  // Estado para controlar se o preço de atacado será usado ao gerar orçamentos
+  // Por padrão, utiliza o valor vindo das entradas ou false se não definido.
+  const [useWholesaleForQuote, setUseWholesaleForQuote] = useState<boolean>(inputs.useWholesalePrice ?? false);
+
   // Handler para gerar orçamento com os valores atuais (vai para aba orçamento / gerar pdf)
   const handleGenerateQuote = () => {
     const updatedInputs: CalculatorInputs = {
       ...inputs,
       profitMargin: markup,
       desiredPrice: manualPrice,
+      useWholesalePrice: useWholesaleForQuote,
     };
     const updatedResults = calculateCosts(updatedInputs);
     onGenerateQuote(updatedInputs, updatedResults);
@@ -127,6 +132,7 @@ export const CalculationCard = ({
       ...inputs,
       profitMargin: markup,
       desiredPrice: manualPrice,
+      useWholesalePrice: useWholesaleForQuote,
     };
     const updatedResults = calculateCosts(updatedInputs);
     if (typeof onAddItemToQuote === "function") {
@@ -147,9 +153,7 @@ export const CalculationCard = ({
         <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">
-                Preço de Venda
-              </div>
+              <div className="text-sm text-muted-foreground mb-1">Preço de Venda</div>
               <div className="text-2xl font-bold">R$ {finalPrice.toFixed(2)}</div>
               {manualPrice !== undefined && (
                 <div className="text-xs text-muted-foreground">(Preço manual)</div>
@@ -158,34 +162,22 @@ export const CalculationCard = ({
 
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
               <div className="text-sm text-muted-foreground mb-1">Lucro Líquido</div>
-              <div
-                className={`text-2xl font-bold ${
-                  profit < 0 ? "text-destructive" : ""
-                }`}
-              >
-                R$ {profit.toFixed(2)}
-              </div>
+              <div className={`text-2xl font-bold ${profit < 0 ? "text-destructive" : ""}`}>R$ {profit.toFixed(2)}</div>
               <div className="text-xs text-muted-foreground">
                 {profit < 0 ? "Prejuízo" : `Lucro de ${realMargin.toFixed(1)}% sobre venda`}
               </div>
             </div>
 
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">
-                Custo de Produção
-              </div>
+              <div className="text-sm text-muted-foreground mb-1">Custo de Produção</div>
               <div className="text-2xl font-bold">R$ {cost.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
-                Inclui falha ({inputs.failureRate}%), embalagem e extras
-              </div>
+              <div className="text-xs text-muted-foreground">Inclui falha ({inputs.failureRate}%), embalagem e extras</div>
             </div>
 
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
               <div className="text-sm text-muted-foreground mb-1">Taxas / Impostos</div>
               <div className="text-2xl font-bold">R$ {feeValue.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
-                {inputs.additionalFee}% do valor de venda
-              </div>
+              <div className="text-xs text-muted-foreground">{inputs.additionalFee}% do valor de venda</div>
             </div>
 
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
@@ -203,31 +195,19 @@ export const CalculationCard = ({
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
               <div className="text-sm text-muted-foreground mb-1">Preço de Atacado</div>
               <div className="text-2xl font-bold">R$ {wholesalePrice.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
-                Desconto de {wholesaleDiscount.toFixed(1)}%
-              </div>
+              <div className="text-xs text-muted-foreground">Desconto de {wholesaleDiscount.toFixed(1)}%</div>
             </div>
 
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
               <div className="text-sm text-muted-foreground mb-1">Lucro no Atacado</div>
-              <div
-                className={`text-2xl font-bold ${
-                  wholesaleProfit < 0 ? "text-destructive" : ""
-                }`}
-              >
-                R$ {wholesaleProfit.toFixed(2)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {wholesaleProfit < 0 ? "Prejuízo" : "Lucro por unidade para você"}
-              </div>
+              <div className={`text-2xl font-bold ${wholesaleProfit < 0 ? "text-destructive" : ""}`}>R$ {wholesaleProfit.toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground">{wholesaleProfit < 0 ? "Prejuízo" : "Lucro por unidade para você"}</div>
             </div>
 
             <div className="p-3 bg-card rounded border flex flex-col justify-between">
               <div className="text-sm text-muted-foreground mb-1">Margem do Revendedor</div>
               <div className="text-2xl font-bold">{resellerMargin.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground">
-                Lucro sobre o preço de atacado
-              </div>
+              <div className="text-xs text-muted-foreground">Lucro sobre o preço de atacado</div>
             </div>
           </div>
 
@@ -238,17 +218,8 @@ export const CalculationCard = ({
               <span>Markup (%)</span>
               <span className="font-semibold">{markup}%</span>
             </Label>
-            <Slider
-              id="markupSlider"
-              min={0}
-              max={500}
-              step={1}
-              value={[markup]}
-              onValueChange={handleSliderChange}
-            />
-            <p className="text-xs text-muted-foreground">
-              Ajuste a margem de lucro em relação ao custo de produção.
-            </p>
+            <Slider id="markupSlider" min={0} max={500} step={1} value={[markup]} onValueChange={handleSliderChange} />
+            <p className="text-xs text-muted-foreground">Ajuste a margem de lucro em relação ao custo de produção.</p>
           </div>
 
           <div className="space-y-1">
@@ -262,34 +233,38 @@ export const CalculationCard = ({
               onChange={handleManualPriceChange}
               placeholder="Insira um valor de venda..."
             />
+            <p className="text-xs text-muted-foreground">Deixe em branco para usar o valor calculado.</p>
+          </div>
+
+          {/* Seletor para usar preço de atacado no orçamento */}
+          <div className="space-y-2">
+            <Label htmlFor="wholesaleSwitch" className="flex justify-between items-center">
+              <span>Usar preço de atacado no orçamento</span>
+              <Switch
+                id="wholesaleSwitch"
+                checked={useWholesaleForQuote}
+                onCheckedChange={(checked) => setUseWholesaleForQuote(checked as boolean)}
+              />
+            </Label>
             <p className="text-xs text-muted-foreground">
-              Deixe em branco para usar o valor calculado.
+              Ao ativar, o valor de atacado será aplicado ao adicionar itens ao orçamento ou gerar PDF.
             </p>
           </div>
 
           <Separator className="my-4" />
 
           <div className="flex flex-col md:flex-row gap-4">
-            <Button
-              onClick={() => setShowBreakdown(true)}
-              className="flex-1 bg-gradient-accent text-accent-foreground hover:opacity-90"
-            >
+            <Button onClick={() => setShowBreakdown(true)} className="flex-1 bg-gradient-accent text-accent-foreground hover:opacity-90">
               <Info className="h-4 w-4 mr-2" />
               Como os gastos foram calculados
             </Button>
 
-            <Button
-              onClick={handleAddItem}
-              className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90"
-            >
+            <Button onClick={handleAddItem} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90">
               <DollarSign className="h-4 w-4 mr-2" />
               Adicionar ao Orçamento
             </Button>
 
-            <Button
-              onClick={handleGenerateQuote}
-              className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90"
-            >
+            <Button onClick={handleGenerateQuote} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90">
               <DollarSign className="h-4 w-4 mr-2" />
               Gerar PDF
             </Button>
@@ -302,30 +277,17 @@ export const CalculationCard = ({
           <div className="bg-card max-w-lg w-full rounded-lg shadow-lg overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-lg font-semibold">Raio-X do Preço</h2>
-              <button
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => setShowBreakdown(false)}
-              >
+              <button className="text-muted-foreground hover:text-foreground" onClick={() => setShowBreakdown(false)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
-
             <div className="p-4 space-y-4">
               <div>
                 <p className="text-sm font-medium mb-1">Distribuição do valor de venda</p>
                 <div className="flex h-4 w-full rounded overflow-hidden border">
-                  <div
-                    className="bg-destructive/50"
-                    style={{ width: `${finalPrice > 0 ? (cost / finalPrice) * 100 : 0}%` }}
-                  />
-                  <div
-                    className="bg-warning/50"
-                    style={{ width: `${finalPrice > 0 ? (feeValue / finalPrice) * 100 : 0}%` }}
-                  />
-                  <div
-                    className="bg-success/50"
-                    style={{ width: `${finalPrice > 0 ? (profit / finalPrice) * 100 : 0}%` }}
-                  />
+                  <div className="bg-destructive/50" style={{ width: `${finalPrice > 0 ? (cost / finalPrice) * 100 : 0}%` }} />
+                  <div className="bg-warning/50" style={{ width: `${finalPrice > 0 ? (feeValue / finalPrice) * 100 : 0}%` }} />
+                  <div className="bg-success/50" style={{ width: `${finalPrice > 0 ? (profit / finalPrice) * 100 : 0}%` }} />
                 </div>
                 <div className="flex justify-between text-xs mt-1">
                   <span>Custo: {finalPrice > 0 ? ((cost / finalPrice) * 100).toFixed(1) : "0.0"}%</span>
@@ -333,10 +295,8 @@ export const CalculationCard = ({
                   <span>Lucro: {finalPrice > 0 ? ((profit / finalPrice) * 100).toFixed(1) : "0.0"}%</span>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <p className="text-sm font-medium mb-1">1. Custo Industrial</p>
-
                 <div className="flex justify-between text-sm">
                   <span>Material Consumido</span>
                   <span>R$ {calcResults.filamentCost.toFixed(2)}</span>
@@ -358,27 +318,21 @@ export const CalculationCard = ({
                   <span>R$ {inputs.finishingCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Embalagem &amp; Extras</span>
-                  <span>
-                    R$ {(calcResults.packagingCost + calcResults.extraCost).toFixed(2)}
-                  </span>
+                  <span>Embalagem & Extras</span>
+                  <span>R$ {(calcResults.packagingCost + calcResults.extraCost).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Margem de Falha</span>
                   <span>R$ {calcResults.failureCost.toFixed(2)}</span>
                 </div>
-
                 <Separator className="my-2" />
-
                 <div className="flex justify-between font-semibold text-sm">
                   <span>Total Custo</span>
                   <span>R$ {cost.toFixed(2)}</span>
                 </div>
               </div>
-
               <div className="mt-4 space-y-2">
                 <p className="text-sm font-medium mb-1">Markup e Taxas</p>
-
                 <div className="flex justify-between text-sm">
                   <span>Markup de {markup.toFixed(0)}%</span>
                   <span>R$ {calcResults.profitAmount.toFixed(2)}</span>
@@ -387,21 +341,14 @@ export const CalculationCard = ({
                   <span>Taxa Marketplace ({inputs.additionalFee}%)</span>
                   <span>R$ {feeValue.toFixed(2)}</span>
                 </div>
-
                 <Separator className="my-2" />
-
                 <div className="flex justify-between font-semibold text-sm">
                   <span>Lucro Líquido</span>
                   <span>R$ {profit.toFixed(2)}</span>
                 </div>
               </div>
-
               <div className="text-right">
-                <Button
-                  onClick={() => setShowBreakdown(false)}
-                  variant="ghost"
-                  className="text-primary"
-                >
+                <Button onClick={() => setShowBreakdown(false)} variant="ghost" className="text-primary">
                   Fechar
                 </Button>
               </div>
