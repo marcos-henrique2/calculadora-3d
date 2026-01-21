@@ -19,6 +19,10 @@ import {
  * custo de produção e controles para ajustar a margem de lucro (markup) via
  * slider ou informar um preço final manualmente. Também permite abrir um
  * modal com o detalhamento de custos e gerar um orçamento.
+ *
+ * Esta versão inclui a exibição de valores por unidade quando a quantidade
+ * informada for maior que 1. Assim, o usuário pode verificar o custo,
+ * preço e lucro unitários, além dos valores de atacado por unidade.
  */
 interface CalculationCardProps {
   /** Entradas originais da calculadora após o cálculo inicial */
@@ -66,6 +70,33 @@ export const CalculationCard = ({ inputs, results, onGenerateQuote }: Calculatio
   const roiPercentage = cost > 0 ? (profit / cost) * 100 : 0
   // Margem real (%) = lucro / preço final * 100
   const realMargin = finalPrice > 0 ? (profit / finalPrice) * 100 : 0
+
+  // Desconto de atacado (percentual). Se não informado, assume 0.
+  const wholesaleDiscount = inputs.wholesaleDiscount ?? 0
+  // Preço no atacado aplica o desconto sobre o preço final (já incluindo taxa)
+  const wholesalePrice = finalPrice * (1 - wholesaleDiscount / 100)
+  // Lucro líquido no atacado (valor total) – calcula depois custos e taxa
+  const wholesaleProfit = wholesalePrice - cost - feeValue
+  // Lucro do revendedor total (diferença entre preço de venda normal e preço atacado)
+  const resellerProfit = finalPrice - wholesalePrice
+  // Margem de lucro do revendedor em relação ao preço de atacado total
+  const resellerMargin = wholesalePrice > 0 ? (resellerProfit / wholesalePrice) * 100 : 0
+
+  // === Valores por unidade ===
+  // Número de unidades (garante ao menos 1 para evitar divisão por zero)
+  const quantity = inputs.quantity && inputs.quantity > 0 ? inputs.quantity : 1
+  // Preço por unidade (considerando o preço final com taxas ou o preço manual)
+  const pricePerUnit = finalPrice / quantity
+  // Custo por unidade
+  const costPerUnit = calcResults.costPerUnit
+  // Fee (taxa) por unidade
+  const feePerUnit = feeValue / quantity
+  // Lucro por unidade (considerando o preço final com taxa ou manual)
+  const profitPerUnitCalc = pricePerUnit - costPerUnit - feePerUnit
+  // Preço de atacado por unidade
+  const wholesalePricePerUnit = wholesalePrice / quantity
+  // Lucro de atacado por unidade
+  const wholesaleProfitPerUnit = wholesalePricePerUnit - costPerUnit - feePerUnit
 
   // Handler para alteração do slider de markup
   const handleSliderChange = (value: number[]) => {
@@ -164,6 +195,33 @@ export const CalculationCard = ({ inputs, results, onGenerateQuote }: Calculatio
               </div>
               <div className="text-xs text-muted-foreground">Lucro / Preço de Venda</div>
             </div>
+
+            {/* Preço de Atacado */}
+            <div className="p-3 bg-card rounded border flex flex-col justify-between">
+              <div className="text-sm text-muted-foreground mb-1">Preço de Atacado</div>
+              <div className="text-2xl font-bold">R$ {wholesalePrice.toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground">
+                Desconto de {wholesaleDiscount.toFixed(1)}%
+              </div>
+            </div>
+            {/* Lucro no Atacado */}
+            <div className="p-3 bg-card rounded border flex flex-col justify-between">
+              <div className="text-sm text-muted-foreground mb-1">Lucro no Atacado</div>
+              <div className={`text-2xl font-bold ${wholesaleProfit < 0 ? 'text-destructive' : ''}`}>
+                R$ {wholesaleProfit.toFixed(2)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {wholesaleProfit < 0 ? 'Prejuízo' : 'Lucro total para você'}
+              </div>
+            </div>
+            {/* Margem do Revendedor */}
+            <div className="p-3 bg-card rounded border flex flex-col justify-between">
+              <div className="text-sm text-muted-foreground mb-1">Margem do Revendedor</div>
+              <div className="text-2xl font-bold">
+                {resellerMargin.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground">Lucro sobre o preço de atacado</div>
+            </div>
           </div>
 
           <Separator className="my-4" />
@@ -203,6 +261,50 @@ export const CalculationCard = ({ inputs, results, onGenerateQuote }: Calculatio
               Informe um valor final para simular lucro/prejuízo manualmente. Deixe em branco para usar o valor calculado.
             </p>
           </div>
+
+          {/* Valores por unidade (mostra se quantidade > 1) */}
+          {quantity > 1 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Valores por unidade</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Preço unitário */}
+                  <div className="p-3 bg-card rounded border flex flex-col justify-between">
+                    <div className="text-sm text-muted-foreground mb-1">Preço por Unidade</div>
+                    <div className="text-xl font-bold">R$ {pricePerUnit.toFixed(2)}</div>
+                  </div>
+                  {/* Custo unitário */}
+                  <div className="p-3 bg-card rounded border flex flex-col justify-between">
+                    <div className="text-sm text-muted-foreground mb-1">Custo por Unidade</div>
+                    <div className="text-xl font-bold">R$ {costPerUnit.toFixed(2)}</div>
+                  </div>
+                  {/* Lucro unitário */}
+                  <div className="p-3 bg-card rounded border flex flex-col justify-between">
+                    <div className="text-sm text-muted-foreground mb-1">Lucro por Unidade</div>
+                    <div className={`text-xl font-bold ${profitPerUnitCalc < 0 ? 'text-destructive' : ''}`}>
+                      R$ {profitPerUnitCalc.toFixed(2)}
+                    </div>
+                  </div>
+                  {/* Preço atacado por unidade */}
+                  <div className="p-3 bg-card rounded border flex flex-col justify-between">
+                    <div className="text-sm text-muted-foreground mb-1">Atacado por Unidade</div>
+                    <div className="text-xl font-bold">R$ {wholesalePricePerUnit.toFixed(2)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {wholesaleDiscount.toFixed(1)}% desc.
+                    </div>
+                  </div>
+                  {/* Lucro atacado por unidade */}
+                  <div className="p-3 bg-card rounded border flex flex-col justify-between">
+                    <div className="text-sm text-muted-foreground mb-1">Lucro Atacado por Unidade</div>
+                    <div className={`text-xl font-bold ${wholesaleProfitPerUnit < 0 ? 'text-destructive' : ''}`}>
+                      R$ {wholesaleProfitPerUnit.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator className="my-4" />
 

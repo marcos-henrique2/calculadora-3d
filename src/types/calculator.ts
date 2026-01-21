@@ -50,6 +50,15 @@ export interface CalculatorInputs {
    * Quando verdadeiro, o valor final mostrado será arredondado usando Math.round().
    */
   roundPrice: boolean;
+
+  /**
+   * Percentual de desconto para preços de atacado. Representa o abatimento
+   * percentual aplicado sobre o preço final de venda ao oferecer um valor
+   * reduzido para revendedores ou pedidos em grande quantidade. Por exemplo,
+   * um valor de 20 significa que o preço final será reduzido em 20%.
+   * Se undefined ou 0, nenhum desconto é aplicado.
+   */
+  wholesaleDiscount?: number;
 }
 
 export interface CalculationResults {

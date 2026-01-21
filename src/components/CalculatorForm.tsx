@@ -392,6 +392,23 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               }
               placeholder="Ex: 12% Shopee, 5% Etsy"
             />
+            {/* Desconto de atacado */}
+            <InputWithLabel
+              label="Desconto de Atacado (%)"
+              id="wholesaleDiscount"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={inputs.wholesaleDiscount === undefined ? "" : inputs.wholesaleDiscount}
+              onChange={(e) =>
+                handleInputChange(
+                  "wholesaleDiscount",
+                  e.target.value === "" ? undefined : Number(e.target.value)
+                )
+              }
+              placeholder="Ex: 20 para dar 20% de desconto"
+            />
           </div>
           <div className="pt-2">
             <InputWithLabel
