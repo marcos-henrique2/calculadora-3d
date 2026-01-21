@@ -2,17 +2,18 @@ import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalculatorForm } from "@/components/CalculatorForm";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
-import { QuoteTab } from "@/components/QuoteTab";
-import { CalculationCard } from "@/components/CalculationCard";  // novo card
+import { QuoteTab, QuoteItem } from "@/components/QuoteTab";
+import { CalculationCard } from "@/components/CalculationCard";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 import { calculateCosts } from "@/utils/calculator";
+import { generateQuotePDF } from "@/utils/pdfGenerator";
 import { Calculator, FileText, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { toast } = useToast();
 
-  // Estado de seleção de aba (calculator ou quote) com persistência em localStorage
+  // Aba ativa (calculator/quote)
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("activeTab");
@@ -21,7 +22,7 @@ const Index = () => {
     return "calculator";
   });
 
-  // Entradas padrão
+  // Inputs padrão
   const [inputs, setInputs] = useState<CalculatorInputs>({
     // Dados da Peça
     pieceName: "",
@@ -55,27 +56,41 @@ const Index = () => {
     desiredPrice: undefined,
     roundPrice: false,
 
-    // Custos fixos (caso use embalagem/extras)
+    // Extras
     packagingCost: 0,
     extraCost: 0,
+
+    // Atacado (se existir no seu type)
+    wholesaleDiscount: 0,
   });
 
   const [results, setResults] = useState<CalculationResults | null>(null);
 
-  // Estados para exibir o card interativo após o cálculo
+  // Card pós cálculo
   const [showCard, setShowCard] = useState(false);
   const [cardInputs, setCardInputs] = useState<CalculatorInputs | null>(null);
   const [cardResults, setCardResults] = useState<CalculationResults | null>(null);
 
+  // ✅ Lista do orçamento (multi-itens)
+  const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
+
+  // Persistência da aba ativa
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeTab", activeTab);
+    }
+  }, [activeTab]);
+
   const handleCalculate = () => {
     if (!inputs.pieceName.trim()) {
       toast({
-      title: "Atenção",
-      description: "Por favor, preencha o nome da peça",
-      variant: "destructive",
+        title: "Atenção",
+        description: "Por favor, preencha o nome da peça",
+        variant: "destructive",
       });
       return;
     }
+
     if (inputs.quantity < 1) {
       toast({
         title: "Atenção",
@@ -84,10 +99,11 @@ const Index = () => {
       });
       return;
     }
+
     const calculatedResults = calculateCosts(inputs);
     setResults(calculatedResults);
 
-    // preenche o card e exibe
+    // Mostra o card interativo
     setCardInputs(inputs);
     setCardResults(calculatedResults);
     setShowCard(true);
@@ -97,30 +113,48 @@ const Index = () => {
       description: "Custos calculados com sucesso.",
     });
 
-    // scroll suave até resultados (não utilizado se exibir card)
     setTimeout(() => {
       const section = document.getElementById("results-section");
-      if (section) {
-        section.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
 
-  // Atualiza localStorage com a aba ativa
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("activeTab", activeTab);
-    }
-  }, [activeTab]);
+  // ✅ Adiciona item ao orçamento (multi)
+  const handleAddItemToQuote = (updatedInputs: CalculatorInputs, updatedResults: CalculationResults) => {
+    setQuoteItems((prev) => [...prev, { inputs: updatedInputs, results: updatedResults }]);
 
-  // Função chamada pelo card ao gerar orçamento
-  const handleGenerateQuoteFromCard = (
-    updatedInputs: CalculatorInputs,
-    updatedResults: CalculationResults
-  ) => {
+    toast({
+      title: "Item adicionado!",
+      description: "O item foi incluído no orçamento.",
+    });
+
+    // Se quiser, pode ir direto para a aba de orçamento:
+    // setActiveTab("quote");
+  };
+
+  const handleRemoveQuoteItem = (index: number) => {
+    setQuoteItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearQuoteItems = () => {
+    setQuoteItems([]);
+    toast({
+      title: "Orçamento limpo",
+      description: "Todos os itens foram removidos.",
+    });
+  };
+
+  // Mantém o fluxo antigo caso você queira (não é obrigatório)
+  const handleGenerateQuoteFromCard = (updatedInputs: CalculatorInputs, updatedResults: CalculationResults) => {
     setInputs(updatedInputs);
     setResults(updatedResults);
     setActiveTab("quote");
+  };
+
+  // ✅ Gera PDF com a lista de itens
+  const handleGenerateMultiPDF = (items: QuoteItem[]) => {
+    // usa o generateQuotePDF que já aceita lista
+    generateQuotePDF(items);
   };
 
   return (
@@ -138,13 +172,9 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value)}
-          className="w-full"
-        >
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 h-auto p-1 bg-card shadow-lg">
             <TabsTrigger
               value="calculator"
@@ -162,19 +192,16 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Aba de Cálculo */}
+          {/* Aba calculadora */}
           <TabsContent value="calculator" className="space-y-8">
-            <CalculatorForm
-              inputs={inputs}
-              setInputs={setInputs}
-              onCalculate={handleCalculate}
-            />
-            {/* Se o cálculo foi realizado, exibe o card; caso contrário, exibe o resultado padrão (ResultsDisplay) */}
+            <CalculatorForm inputs={inputs} setInputs={setInputs} onCalculate={handleCalculate} />
+
             {showCard && cardInputs && cardResults ? (
               <CalculationCard
                 inputs={cardInputs}
                 results={cardResults}
                 onGenerateQuote={handleGenerateQuoteFromCard}
+                onAddItemToQuote={handleAddItemToQuote}
               />
             ) : (
               <div id="results-section">
@@ -191,27 +218,13 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* Aba de Orçamento */}
+          {/* Aba orçamento (multi-itens) */}
           <TabsContent value="quote">
             <QuoteTab
-              results={results}
-              inputs={inputs}
-              onLoadBudget={(budget: any) => {
-                // Carrega os valores do orçamento salvo e muda para a aba de cálculo
-                setInputs(budget.inputs);
-                setResults(budget.results);
-                setShowCard(false);
-                setActiveTab("calculator");
-                setTimeout(() => {
-                  const formSection = document.getElementById("results-section");
-                  if (formSection) {
-                    formSection.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
-                }, 100);
-              }}
+              items={quoteItems}
+              onRemoveItem={handleRemoveQuoteItem}
+              onClearItems={handleClearQuoteItems}
+              onGeneratePDF={handleGenerateMultiPDF}
             />
           </TabsContent>
         </Tabs>
@@ -221,8 +234,7 @@ const Index = () => {
       <footer className="bg-card border-t mt-16 py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>
-            Calculadora 3D Pro - Ferramenta profissional para cálculo de custos
-            de impressão 3D
+            Calculadora 3D Pro - Ferramenta profissional para cálculo de custos de impressão 3D
           </p>
         </div>
       </footer>
