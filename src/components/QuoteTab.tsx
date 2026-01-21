@@ -108,7 +108,21 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: Q
                     return (
                       <tr key={idx} className={idx % 2 === 0 ? "bg-muted/50" : "bg-muted"}>
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{qty}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.pieceName}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm">
+                      {/* Descrição com imagem opcional do produto */}
+                      {inputs.productImage ? (
+                        <div className="flex items-center space-x-2">
+                          <img
+                            src={inputs.productImage}
+                            alt="Foto do produto"
+                            className="w-8 h-8 object-cover rounded border"
+                          />
+                          <span className="whitespace-pre-line">{inputs.pieceName}</span>
+                        </div>
+                      ) : (
+                        <span>{inputs.pieceName}</span>
+                      )}
+                    </td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.material}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.filamentUsed?.toFixed(2) || 0}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{timeStr}</td>

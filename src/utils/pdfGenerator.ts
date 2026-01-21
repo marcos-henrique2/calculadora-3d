@@ -76,16 +76,20 @@ export const generateQuotePDF = (
     y += 8;
   };
 
-  // Colunas fixas + Descrição adaptável
+  // Colunas fixas + Descrição adaptável. Foi adicionada uma coluna para a foto
+  // do produto. Para acomodar a imagem, aumentamos a altura da linha e
+  // reservamos uma largura fixa.
   const COL_QTD = 12;
+  const COL_IMG = 20;
   const COL_MATERIAL = 18;
   const COL_PESO = 20;
   const COL_TEMPO = 24;
   const COL_TOTAL = 24;
   const COL_UNID = 24;
-  const COL_DESC = tableWidth - (COL_QTD + COL_MATERIAL + COL_PESO + COL_TEMPO + COL_TOTAL + COL_UNID);
+  const COL_DESC = tableWidth - (COL_QTD + COL_IMG + COL_MATERIAL + COL_PESO + COL_TEMPO + COL_TOTAL + COL_UNID);
   const cols = [
     { label: "Qtd.", w: COL_QTD, align: "center" as const },
+    { label: "Foto", w: COL_IMG, align: "center" as const },
     { label: "Descrição", w: COL_DESC, align: "left" as const },
     { label: "Material", w: COL_MATERIAL, align: "center" as const },
     { label: "Peso (g)", w: COL_PESO, align: "center" as const },
@@ -94,8 +98,10 @@ export const generateQuotePDF = (
     { label: "Valor Unid.", w: COL_UNID, align: "right" as const },
   ];
 
+  // Altura do cabeçalho e das linhas. A linha foi aumentada para acomodar
+  // miniaturas de imagem (altura de aproximadamente 10 mm).
   const headerH = 9;
-  const rowH = 9;
+  const rowH = 12;
 
   const drawCellText = (text: string, x: number, w: number, yText: number, align: "left" | "center" | "right") => {
     const padding = 2;
@@ -166,10 +172,13 @@ export const generateQuotePDF = (
     pdf.setFillColor(255, 255, 255);
     pdf.rect(margin, y, tableWidth, rowH, "F");
     // descrição “responsiva” e truncada pela largura real
-    const descMaxWidth = cols[1].w - 4;
+    const descMaxWidth = cols[2].w - 4;
     const desc = fitTextToWidth(inputs.pieceName || "", descMaxWidth);
-    const values = [
+    // Prepara a lista de valores das células. Há oito colunas: Qtd., Foto,
+    // Descrição, Material, Peso, Tempo, Valor total e Valor unid.
+    const rowValues = [
       { v: String(qty), align: "center" as const },
+      { v: "", align: "center" as const },
       { v: desc, align: "left" as const },
       { v: inputs.material || "", align: "center" as const },
       { v: inputs.filamentUsed ? inputs.filamentUsed.toFixed(2) : "0.00", align: "center" as const },
@@ -177,10 +186,27 @@ export const generateQuotePDF = (
       { v: `R$ ${money(totalPrice, round)}`, align: "right" as const },
       { v: `R$ ${money(unitPrice, round)}`, align: "right" as const },
     ];
-    const textY = y + 6;
+    const textY = y + 7; // aumenta a linha base para centralizar texto verticalmente na linha de 12 mm
     let x = margin;
-    values.forEach((cell, i) => {
-      drawCellText(cell.v, x, cols[i].w, textY, cell.align);
+    rowValues.forEach((cell, i) => {
+      // Para a coluna de foto, insere a imagem se existir
+      if (i === 1) {
+        if (inputs.productImage) {
+          try {
+            // Determina o formato da imagem a partir do prefixo da DataURL
+            const format = inputs.productImage.startsWith("data:image/png") ? "PNG" : "JPEG";
+            // Define tamanhos de miniatura com pequenas margens internas
+            const imgW = cols[i].w - 4;
+            const imgH = rowH - 4;
+            pdf.addImage(inputs.productImage, format, x + 2, y + 2, imgW, imgH);
+          } catch (err) {
+            // Se ocorrer erro ao adicionar a imagem (por exemplo, formato não suportado), ignora
+          }
+        }
+        // mesmo que haja imagem ou não, não escrevemos texto nesta coluna
+      } else {
+        drawCellText(cell.v, x, cols[i].w, textY, cell.align);
+      }
       x += cols[i].w;
     });
     // separador azul fino

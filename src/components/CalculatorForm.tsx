@@ -1,30 +1,67 @@
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputWithLabel } from "@/components/ui/input-with-label";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Calculator, Package, Zap, Wrench, TrendingUp } from "lucide-react";
+import { Calculator, Package, Zap, Wrench, TrendingUp, Image as ImageIcon } from "lucide-react";
 import { CalculatorInputs } from "@/types/calculator";
 
 interface CalculatorFormProps {
+  /**
+   * Objeto contendo todos os valores de entrada da calculadora. Qualquer
+   * alteração em um dos campos deve atualizar este objeto através de
+   * `setInputs`, garantindo que o estado global permaneça consistente.
+   */
   inputs: CalculatorInputs;
+  /**
+   * Função para atualizar o estado de entrada. Recebe o novo objeto de
+   * entradas e substitui o estado atual.
+   */
   setInputs: (inputs: CalculatorInputs) => void;
+  /**
+   * Callback invocado quando o usuário clica no botão "Calcular Custos".
+   */
   onCalculate: () => void;
 }
 
 /**
  * Formulário principal da calculadora de custos.
- * Todos os campos numéricos foram ajustados para permitir que o usuário apague
- * completamente o valor atual sem que o número “0” apareça imediatamente. Se o
- * campo estiver vazio, o valor interno é salvo como 0; caso contrário, o
- * texto digitado é convertido para número. Essa abordagem facilita a edição
- * utilizando apenas a tecla Backspace.
+ *
+ * Este componente foi adaptado para incluir um campo de upload de imagem
+ * permitindo ao usuário selecionar uma foto do produto. A imagem é lida
+ * como Data URL via FileReader e armazenada em `inputs.productImage`. A
+ * foto será usada posteriormente na lista de orçamento e no PDF.
  */
 export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFormProps) => {
-  const handleInputChange = (field: keyof CalculatorInputs, value: string | number | boolean) => {
+  /**
+   * Manipula alterações em campos de entrada genéricos. Permite números,
+   * strings e booleanos. Ao apagar completamente um campo numérico, o
+   * valor interno é definido como 0 para evitar aparecer "0" no input.
+   */
+  const handleInputChange = (field: keyof CalculatorInputs, value: string | number | boolean | undefined) => {
     setInputs({ ...inputs, [field]: value });
+  };
+
+  /**
+   * Manipula a seleção de uma imagem de produto. Lê o arquivo como Data URL
+   * usando FileReader e armazena o resultado em `inputs.productImage`.
+   * Caso nenhum arquivo seja selecionado, define `productImage` como
+   * undefined para limpar a imagem.
+   */
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      handleInputChange("productImage", undefined);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result?.toString();
+      handleInputChange("productImage", base64 || undefined);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -84,6 +121,28 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               Pintura manual necessária
             </Label>
           </div>
+          {/* Campo de upload de foto do produto */}
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="productImage" className="flex items-center gap-1">
+              <ImageIcon className="h-4 w-4" /> Foto do Produto
+            </Label>
+            <input
+              id="productImage"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="border rounded p-1 text-sm"
+            />
+            {inputs.productImage && (
+              <div className="mt-2">
+                <img
+                  src={inputs.productImage}
+                  alt="Pré-visualização da foto do produto"
+                  className="h-20 w-20 object-cover rounded border"
+                />
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -110,7 +169,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "filamentPrice",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -124,7 +183,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "filamentUsed",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -141,7 +200,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
                 onChange={(e) =>
                   handleInputChange(
                     "printTimeHours",
-                    e.target.value === "" ? 0 : Number(e.target.value)
+                    e.target.value === "" ? 0 : Number(e.target.value),
                   )
                 }
               />
@@ -155,7 +214,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
                 onChange={(e) =>
                   handleInputChange(
                     "printTimeMinutes",
-                    e.target.value === "" ? 0 : Number(e.target.value)
+                    e.target.value === "" ? 0 : Number(e.target.value),
                   )
                 }
               />
@@ -171,7 +230,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "printerPower",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -185,7 +244,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "energyRate",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -199,7 +258,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "printerValue",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -212,7 +271,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "printerLifespan",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -243,7 +302,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "hourlyRate",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -257,7 +316,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "activeWorkTime",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -271,7 +330,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "finishingCost",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -285,7 +344,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "maintenanceCost",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -300,7 +359,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "failureRate",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -315,7 +374,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "packagingCost",
-                  e.target.value === "" ? undefined : Number(e.target.value)
+                  e.target.value === "" ? undefined : Number(e.target.value),
                 )
               }
             />
@@ -329,7 +388,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "extraCost",
-                  e.target.value === "" ? undefined : Number(e.target.value)
+                  e.target.value === "" ? undefined : Number(e.target.value),
                 )
               }
             />
@@ -373,7 +432,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "profitMargin",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
             />
@@ -387,7 +446,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "additionalFee",
-                  e.target.value === "" ? 0 : Number(e.target.value)
+                  e.target.value === "" ? 0 : Number(e.target.value),
                 )
               }
               placeholder="Ex: 12% Shopee, 5% Etsy"
@@ -404,7 +463,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "wholesaleDiscount",
-                  e.target.value === "" ? undefined : Number(e.target.value)
+                  e.target.value === "" ? undefined : Number(e.target.value),
                 )
               }
               placeholder="Ex: 20 para dar 20% de desconto"
@@ -421,7 +480,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={(e) =>
                 handleInputChange(
                   "desiredPrice",
-                  e.target.value ? Number(e.target.value) : undefined
+                  e.target.value ? Number(e.target.value) : undefined,
                 )
               }
               placeholder="Deixe vazio para usar o preço calculado"
@@ -436,9 +495,7 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
             <Checkbox
               id="roundPrice"
               checked={!!inputs.roundPrice}
-              onCheckedChange={(checked) =>
-                handleInputChange("roundPrice", !!checked)
-              }
+              onCheckedChange={(checked) => handleInputChange("roundPrice", !!checked)}
             />
             <Label htmlFor="roundPrice" className="cursor-pointer">
               Arredondar preço final (valor inteiro)
