@@ -2,13 +2,13 @@ import jsPDF from "jspdf";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 
 /**
- * Gera um orçamento em PDF para um item ou uma lista de itens. Este utilitário
- * aceita tanto um único conjunto de entradas/resultados quanto uma lista de
- * objetos contendo `inputs` e `results`. O PDF inclui cabeçalho, dados do
- * cliente, tabela de itens, total geral e condições de pagamento. Foi
- * atualizado para considerar o preço de atacado quando `inputs.useWholesalePrice`
+ * Gera um orÃ§amento em PDF para um item ou uma lista de itens. Este utilitÃ¡rio
+ * aceita tanto um Ãºnico conjunto de entradas/resultados quanto uma lista de
+ * objetos contendo `inputs` e `results`. O PDF inclui cabeÃ§alho, dados do
+ * cliente, tabela de itens, total geral e condiÃ§Ãµes de pagamento. Foi
+ * atualizado para considerar o preÃ§o de atacado quando `inputs.useWholesalePrice`
  * estiver habilitado. Nesse caso, o valor de atacado (`results.wholesalePrice`)
- * será utilizado para calcular o total e o valor unitário.
+ * serÃ¡ utilizado para calcular o total e o valor unitÃ¡rio.
  */
 export const generateQuotePDF = (
   inputsOrItems: CalculatorInputs | { inputs: CalculatorInputs; results: CalculationResults }[],
@@ -38,16 +38,16 @@ export const generateQuotePDF = (
     return round ? n.toFixed(0) : n.toFixed(2);
   };
 
-  // Trunca pela largura REAL da célula
+  // Trunca pela largura REAL da cÃ©lula
   const fitTextToWidth = (text: string, maxWidth: number) => {
     const t = (text ?? "").toString().trim();
     if (!t) return "";
     if (pdf.getTextWidth(t) <= maxWidth) return t;
     let cut = t;
-    while (cut.length > 0 && pdf.getTextWidth(cut + "…") > maxWidth) {
+    while (cut.length > 0 && pdf.getTextWidth(cut + "â€¦") > maxWidth) {
       cut = cut.slice(0, -1);
     }
-    return cut.length ? cut + "…" : "";
+    return cut.length ? cut + "â€¦" : "";
   };
 
   const drawHeader = () => {
@@ -56,7 +56,7 @@ export const generateQuotePDF = (
     pdf.setTextColor(...white);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(24);
-    pdf.text("ORÇAMENTO", margin, 20);
+    pdf.text("ORÃ‡AMENTO", margin, 20);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(14);
     pdf.text("MALLKI PRINT", margin, 32);
@@ -76,7 +76,7 @@ export const generateQuotePDF = (
     y += 8;
   };
 
-  // Colunas fixas + Descrição adaptável. Foi adicionada uma coluna para a foto
+  // Colunas fixas + DescriÃ§Ã£o adaptÃ¡vel. Foi adicionada uma coluna para a foto
   // do produto. Para acomodar a imagem, aumentamos a altura da linha e
   // reservamos uma largura fixa.
   const COL_QTD = 12;
@@ -90,7 +90,7 @@ export const generateQuotePDF = (
   const cols = [
     { label: "Qtd.", w: COL_QTD, align: "center" as const },
     { label: "Foto", w: COL_IMG, align: "center" as const },
-    { label: "Descrição", w: COL_DESC, align: "left" as const },
+    { label: "DescriÃ§Ã£o", w: COL_DESC, align: "left" as const },
     { label: "Material", w: COL_MATERIAL, align: "center" as const },
     { label: "Peso (g)", w: COL_PESO, align: "center" as const },
     { label: "Tempo (h:m)", w: COL_TEMPO, align: "center" as const },
@@ -98,7 +98,7 @@ export const generateQuotePDF = (
     { label: "Valor Unid.", w: COL_UNID, align: "right" as const },
   ];
 
-  // Altura do cabeçalho e das linhas. A linha foi aumentada para acomodar
+  // Altura do cabeÃ§alho e das linhas. A linha foi aumentada para acomodar
   // miniaturas de imagem (altura de aproximadamente 10 mm).
   const headerH = 9;
   const rowH = 12;
@@ -136,13 +136,19 @@ export const generateQuotePDF = (
       drawHeader();
       y = 55;
       drawTableHeader();
+      // ApÃ³s desenhar o cabeÃ§alho em uma nova pÃ¡gina, resetamos a fonte e a cor do
+      // texto para valores normais. Sem isso, o texto das linhas poderia
+      // permanecer branco (cor do tÃ­tulo) e nÃ£o aparecer nas linhas seguintes.
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
     }
   };
 
   const drawFooter = () => {
     pdf.setFontSize(9);
     pdf.setTextColor(120, 120, 120);
-    pdf.text("Orçamento válido por 30 dias. Valores sujeitos a alteração.", margin, 285);
+    pdf.text("OrÃ§amento vÃ¡lido por 30 dias. Valores sujeitos a alteraÃ§Ã£o.", margin, 285);
   };
 
   // Render
@@ -171,11 +177,11 @@ export const generateQuotePDF = (
     // linha branca (azul+branco)
     pdf.setFillColor(255, 255, 255);
     pdf.rect(margin, y, tableWidth, rowH, "F");
-    // descrição “responsiva” e truncada pela largura real
+    // descriÃ§Ã£o â€œresponsivaâ€ e truncada pela largura real
     const descMaxWidth = cols[2].w - 4;
     const desc = fitTextToWidth(inputs.pieceName || "", descMaxWidth);
-    // Prepara a lista de valores das células. Há oito colunas: Qtd., Foto,
-    // Descrição, Material, Peso, Tempo, Valor total e Valor unid.
+    // Prepara a lista de valores das cÃ©lulas. HÃ¡ oito colunas: Qtd., Foto,
+    // DescriÃ§Ã£o, Material, Peso, Tempo, Valor total e Valor unid.
     const rowValues = [
       { v: String(qty), align: "center" as const },
       { v: "", align: "center" as const },
@@ -191,7 +197,7 @@ export const generateQuotePDF = (
     rowValues.forEach((cell, i) => {
       // Para a coluna de foto, insere a imagem se existir
       if (i === 1) {
-        // Utiliza cast para acessar productImage, pois o tipo CalculatorInputs pode não declarar esse campo em versões antigas
+        // Utiliza cast para acessar productImage, pois o tipo CalculatorInputs pode nÃ£o declarar esse campo em versÃµes antigas
         const img: string | undefined = (inputs as any).productImage;
         if (img) {
           try {
@@ -202,10 +208,10 @@ export const generateQuotePDF = (
             const imgH = rowH - 4;
             pdf.addImage(img, format, x + 2, y + 2, imgW, imgH);
           } catch (err) {
-            // Se ocorrer erro ao adicionar a imagem (por exemplo, formato não suportado), ignora
+            // Se ocorrer erro ao adicionar a imagem (por exemplo, formato nÃ£o suportado), ignora
           }
         }
-        // mesmo que haja imagem ou não, não escrevemos texto nesta coluna
+        // mesmo que haja imagem ou nÃ£o, nÃ£o escrevemos texto nesta coluna
       } else {
         drawCellText(cell.v, x, cols[i].w, textY, cell.align);
       }
@@ -227,19 +233,19 @@ export const generateQuotePDF = (
   pdf.text("TOTAL GERAL", margin + 2, y + 10);
   pdf.text(`R$ ${money(grandTotal, false)}`, margin + tableWidth - 2, y + 10, { align: "right" });
   y += 20;
-  // Condições + assinatura
+  // CondiÃ§Ãµes + assinatura
   pdf.setTextColor(0, 0, 0);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(11);
   ensureSpace(30);
   pdf.text("Pagamento: 40% junto ao pedido e 60% na entrega", margin, y);
   y += 7;
-  pdf.text("Prazo: 7 Dias Úteis", margin, y);
+  pdf.text("Prazo: 7 Dias Ãšteis", margin, y);
   y += 20;
   pdf.setTextColor(80, 80, 80);
   pdf.text("_________________________", margin, y);
-  pdf.text("Anna Vitória", margin, y + 6);
-  pdf.text("Orçamentista", margin, y + 12);
+  pdf.text("Anna VitÃ³ria", margin, y + 6);
+  pdf.text("OrÃ§amentista", margin, y + 12);
   drawFooter();
   const clientSlug = (clientName || "cliente")
     .toLowerCase()
