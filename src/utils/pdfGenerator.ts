@@ -240,12 +240,12 @@ export const generateQuotePDF = (
   ensureSpace(30);
   pdf.text("Pagamento: 40% junto ao pedido e 60% na entrega", margin, y);
   y += 7;
-  pdf.text("Prazo: 7 Dias Ãšteis", margin, y);
+  pdf.text("Prazo: 7 Dias uteis", margin, y);
   y += 20;
   pdf.setTextColor(80, 80, 80);
   pdf.text("_________________________", margin, y);
-  pdf.text("Anna VitÃ³ria", margin, y + 6);
-  pdf.text("OrÃ§amentista", margin, y + 12);
+  pdf.text("Anna Vitoria", margin, y + 6);
+  pdf.text("Orçamentista", margin, y + 12);
   drawFooter();
   const clientSlug = (clientName || "cliente")
     .toLowerCase()
