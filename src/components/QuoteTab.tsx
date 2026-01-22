@@ -110,18 +110,24 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: Q
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{qty}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm">
                       {/* Descrição com imagem opcional do produto */}
-                      {inputs.productImage ? (
-                        <div className="flex items-center space-x-2">
-                          <img
-                            src={inputs.productImage}
-                            alt="Foto do produto"
-                            className="w-8 h-8 object-cover rounded border"
-                          />
-                          <span className="whitespace-pre-line">{inputs.pieceName}</span>
-                        </div>
-                      ) : (
-                        <span>{inputs.pieceName}</span>
-                      )}
+                      {(() => {
+                        // Some projetos mais antigos podem não declarar o campo productImage em CalculatorInputs,
+                        // por isso acessamos através de any. Isso evita erro de tipagem em tempo de compilação.
+                        const img: string | undefined = (inputs as any).productImage;
+                        if (img) {
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <img
+                                src={img}
+                                alt="Foto do produto"
+                                className="w-8 h-8 object-cover rounded border"
+                              />
+                              <span className="whitespace-pre-line">{inputs.pieceName}</span>
+                            </div>
+                          );
+                        }
+                        return <span>{inputs.pieceName}</span>;
+                      })()}
                     </td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.material}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.filamentUsed?.toFixed(2) || 0}</td>

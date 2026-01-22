@@ -191,14 +191,16 @@ export const generateQuotePDF = (
     rowValues.forEach((cell, i) => {
       // Para a coluna de foto, insere a imagem se existir
       if (i === 1) {
-        if (inputs.productImage) {
+        // Utiliza cast para acessar productImage, pois o tipo CalculatorInputs pode não declarar esse campo em versões antigas
+        const img: string | undefined = (inputs as any).productImage;
+        if (img) {
           try {
             // Determina o formato da imagem a partir do prefixo da DataURL
-            const format = inputs.productImage.startsWith("data:image/png") ? "PNG" : "JPEG";
+            const format = img.startsWith("data:image/png") ? "PNG" : "JPEG";
             // Define tamanhos de miniatura com pequenas margens internas
             const imgW = cols[i].w - 4;
             const imgH = rowH - 4;
-            pdf.addImage(inputs.productImage, format, x + 2, y + 2, imgW, imgH);
+            pdf.addImage(img, format, x + 2, y + 2, imgW, imgH);
           } catch (err) {
             // Se ocorrer erro ao adicionar a imagem (por exemplo, formato não suportado), ignora
           }

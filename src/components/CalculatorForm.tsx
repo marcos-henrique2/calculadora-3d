@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from "react";
+import { ChangeEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputWithLabel } from "@/components/ui/input-with-label";
 import { Label } from "@/components/ui/label";
@@ -52,14 +52,18 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
    */
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Se o usuário remover a seleção, simplesmente limpa o campo productImage
     if (!file) {
-      handleInputChange("productImage", undefined);
+      // A propriedade productImage não existe em todas as definições de CalculatorInputs.
+      // Fazemos cast para any ao criar o novo objeto para evitar erros de tipagem.
+      setInputs({ ...(inputs as any), productImage: undefined } as any);
       return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result?.toString();
-      handleInputChange("productImage", base64 || undefined);
+      // atualiza o estado com a string base64; se null, limpa o campo
+      setInputs({ ...(inputs as any), productImage: base64 || undefined } as any);
     };
     reader.readAsDataURL(file);
   };
@@ -133,15 +137,22 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
               onChange={handleImageChange}
               className="border rounded p-1 text-sm"
             />
-            {inputs.productImage && (
-              <div className="mt-2">
-                <img
-                  src={inputs.productImage}
-                  alt="Pré-visualização da foto do produto"
-                  className="h-20 w-20 object-cover rounded border"
-                />
-              </div>
-            )}
+            {/* Pré-visualização da imagem. Cast para any pois alguns projetos antigos não declaram productImage em CalculatorInputs */}
+            {(() => {
+              const img: string | undefined = (inputs as any).productImage;
+              if (img) {
+                return (
+                  <div className="mt-2">
+                    <img
+                      src={img}
+                      alt="Pré-visualização da foto do produto"
+                      className="h-20 w-20 object-cover rounded border"
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </CardContent>
       </Card>
