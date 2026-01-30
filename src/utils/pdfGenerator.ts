@@ -244,7 +244,7 @@ export const generateQuotePDF = (
   y += 20;
   pdf.setTextColor(80, 80, 80);
   pdf.text("_________________________", margin, y);
-  pdf.text("Anna Vitoria", margin, y + 6);
+  pdf.text("", margin, y + 6);
   pdf.text("Orçamentista", margin, y + 12);
   drawFooter();
   const clientSlug = (clientName || "cliente")
