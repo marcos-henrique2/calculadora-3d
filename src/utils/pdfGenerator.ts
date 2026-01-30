@@ -90,7 +90,7 @@ export const generateQuotePDF = (
   const cols = [
     { label: "Qtd.", w: COL_QTD, align: "center" as const },
     { label: "Foto", w: COL_IMG, align: "center" as const },
-    { label: "DescriÃ§Ã£o", w: COL_DESC, align: "left" as const },
+    { label: "Descrição", w: COL_DESC, align: "left" as const },
     { label: "Material", w: COL_MATERIAL, align: "center" as const },
     { label: "Peso (g)", w: COL_PESO, align: "center" as const },
     { label: "Tempo (h:m)", w: COL_TEMPO, align: "center" as const },
@@ -148,7 +148,7 @@ export const generateQuotePDF = (
   const drawFooter = () => {
     pdf.setFontSize(9);
     pdf.setTextColor(120, 120, 120);
-    pdf.text("OrÃ§amento vÃ¡lido por 30 dias. Valores sujeitos a alteraÃ§Ã£o.", margin, 285);
+    pdf.text("Orçamento valido por 30 dias. Valores sujeitos a alteração.", margin, 285);
   };
 
   // Render
