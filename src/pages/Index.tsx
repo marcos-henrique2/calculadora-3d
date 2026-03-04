@@ -6,6 +6,7 @@ import { QuoteTab, QuoteItem } from "@/components/QuoteTab";
 import { CalculationCard } from "@/components/CalculationCard";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 import { calculateCosts } from "@/utils/calculator";
+import { validateCalculatorInputs } from "@/utils/validation";
 import { generateQuotePDF } from "@/utils/pdfGenerator";
 import { Calculator, FileText, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -71,14 +72,15 @@ const Index = () => {
   }, [activeTab]);
 
   const handleCalculate = () => {
-    if (!inputs.pieceName.trim()) {
-      toast({ title: "Atenção", description: "Por favor, preencha o nome da peça", variant: "destructive" });
+    // Valida todas as entradas com o esquema zod
+    const validation = validateCalculatorInputs(inputs);
+    if (!validation.success) {
+      const first = validation.error.errors[0];
+      const message = first?.message || 'Entradas inválidas';
+      toast({ title: 'Atenção', description: message, variant: 'destructive' });
       return;
     }
-    if (inputs.quantity < 1) {
-      toast({ title: "Atenção", description: "A quantidade deve ser pelo menos 1", variant: "destructive" });
-      return;
-    }
+
     const calculatedResults = calculateCosts(inputs);
     setResults(calculatedResults);
     // Mostra o card interativo
