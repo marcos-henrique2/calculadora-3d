@@ -13,67 +13,32 @@ import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { toast } = useToast();
-  // Aba ativa (calculator/quote)
   const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("activeTab");
-      return stored ?? "calculator";
-    }
+    if (typeof window !== "undefined") return localStorage.getItem("activeTab") ?? "calculator";
     return "calculator";
   });
-  // Inputs padrão
   const [inputs, setInputs] = useState<CalculatorInputs>({
-    // Dados da Peça
-    pieceName: "",
-    quantity: 1,
-    material: "PLA",
-    manualPainting: false,
-    // Parâmetros da Impressão
-    filamentPrice: 100,
-    filamentUsed: 0,
-    printTimeHours: 0,
-    printTimeMinutes: 0,
-    printerPower: 250,
-    energyRate: 0.75,
-    printerValue: 5000,
-    printerLifespan: 5000,
-    // Trabalho e Estratégia
-    hourlyRate: 0,
-    activeWorkTime: 0,
-    finishingCost: 0,
-    maintenanceCost: 1,
-    failureRate: 5,
-    complexity: "simple",
-    profitMargin: 30,
-    // Taxas
-    additionalFee: 0,
-    // Comparação de Preço
-    desiredPrice: undefined,
-    roundPrice: false,
-    // Extras
-    packagingCost: 0,
-    extraCost: 0,
-    // Atacado
-    wholesaleDiscount: 0,
-    useWholesalePrice: false,
+    pieceName: "", quantity: 1, material: "PLA", manualPainting: false,
+    filamentPrice: 100, filamentUsed: 0, printTimeHours: 0, printTimeMinutes: 0,
+    printerPower: 250, energyRate: 0.75, printerValue: 5000, printerLifespan: 5000,
+    hourlyRate: 0, activeWorkTime: 0, finishingCost: 0, maintenanceCost: 1,
+    failureRate: 5, complexity: "simple", profitMargin: 30, additionalFee: 0,
+    desiredPrice: undefined, roundPrice: false, packagingCost: 0, extraCost: 0,
+    wholesaleDiscount: 0, useWholesalePrice: false,
   });
   const [results, setResults] = useState<CalculationResults | null>(null);
-  // Card pós cálculo
   const [showCard, setShowCard] = useState(false);
   const [cardInputs, setCardInputs] = useState<CalculatorInputs | null>(null);
   const [cardResults, setCardResults] = useState<CalculationResults | null>(null);
-  // Lista do orçamento (multi-itens)
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
-  // Persistência da aba ativa
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("activeTab", activeTab);
-    }
+    if (typeof window !== "undefined") localStorage.setItem("activeTab", activeTab);
   }, [activeTab]);
 
-  const handleCalculate = () => {
-    // Valida todas as entradas com o esquema zod
-    const validation = validateCalculatorInputs(inputs);
+  // CORREÇÃO DO BUG: Agora a função recebe os dados exatos digitados instantaneamente
+  const handleCalculate = (formData: CalculatorInputs) => {
+    const validation = validateCalculatorInputs(formData);
     if (!validation.success) {
       const first = validation.error.errors[0];
       const message = first?.message || 'Entradas inválidas';
@@ -81,10 +46,9 @@ const Index = () => {
       return;
     }
 
-    const calculatedResults = calculateCosts(inputs);
+    const calculatedResults = calculateCosts(formData);
     setResults(calculatedResults);
-    // Mostra o card interativo
-    setCardInputs(inputs);
+    setCardInputs(formData);
     setCardResults(calculatedResults);
     setShowCard(true);
     toast({ title: "Cálculo realizado!", description: "Custos calculados com sucesso." });
@@ -93,7 +57,7 @@ const Index = () => {
       if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
-  // Adiciona item ao orçamento
+
   const handleAddItemToQuote = (updatedInputs: CalculatorInputs, updatedResults: CalculationResults) => {
     setQuoteItems((prev) => [...prev, { inputs: updatedInputs, results: updatedResults }]);
     toast({ title: "Item adicionado!", description: "O item foi incluído no orçamento." });
@@ -110,10 +74,10 @@ const Index = () => {
     setResults(updatedResults);
     setActiveTab("quote");
   };
-  // Gera PDF com a lista de itens
   const handleGenerateMultiPDF = (items: QuoteItem[]) => {
     generateQuotePDF(items);
   };
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <header className="bg-gradient-primary text-primary-foreground shadow-xl sticky top-0 z-50">

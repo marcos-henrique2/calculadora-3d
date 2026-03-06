@@ -8,140 +8,70 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
 import { calculateCosts } from "@/utils/calculator";
-import { DollarSign, TrendingUp, X, Info } from "lucide-react";
+import { DollarSign, TrendingUp, X, Info, Package, Percent } from "lucide-react";
 
-/**
- * Componente que exibe um cartão com o valor sugerido de venda, lucro líquido,
- * custo de produção e controles para ajustar a margem de lucro (markup) via
- * slider ou informar um preço final manualmente. Também permite abrir um
- * modal com o detalhamento de custos, gerar um orçamento e adicionar o item
- * à lista de orçamento. Foi adicionado um controle para decidir se o preço
- * de atacado será utilizado ao gerar o orçamento (PDF ou lista de itens).
- */
 interface CalculationCardProps {
-  /** Entradas originais da calculadora após o cálculo inicial */
   inputs: CalculatorInputs;
-  /** Resultados originais do cálculo com a margem padrão */
   results: CalculationResults;
-  /** Função chamada ao gerar o orçamento. Deve receber as entradas e resultados atualizados */
   onGenerateQuote: (inputs: CalculatorInputs, results: CalculationResults) => void;
-  /** Função opcional para adicionar o item atual à lista de orçamento */
   onAddItemToQuote?: (inputs: CalculatorInputs, results: CalculationResults) => void;
 }
 
-export const CalculationCard = ({
-  inputs,
-  results,
-  onGenerateQuote,
-  onAddItemToQuote,
-}: CalculationCardProps) => {
-  // Estado local para a margem de lucro ajustável pelo slider (markup)
+export const CalculationCard = ({ inputs, results, onGenerateQuote, onAddItemToQuote }: CalculationCardProps) => {
   const [markup, setMarkup] = useState<number>(inputs.profitMargin);
-
-  // Estado local para preço manual. Quando undefined, usa o valor calculado automaticamente
   const [manualPrice, setManualPrice] = useState<number | undefined>(inputs.desiredPrice);
-
-  // Estado para controlar exibição do modal de detalhamento de custos
   const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
-
-  // Recalcula os resultados sempre que o markup é alterado
+  const [useWholesaleForQuote, setUseWholesaleForQuote] = useState<boolean>(inputs.useWholesalePrice ?? false);
+  
   const [calcResults, setCalcResults] = useState<CalculationResults>(results);
 
   useEffect(() => {
-    const updatedInputs: CalculatorInputs = {
-      ...inputs,
-      profitMargin: markup,
-    };
-    const newResults = calculateCosts(updatedInputs);
-    setCalcResults(newResults);
+    const updatedInputs: CalculatorInputs = { ...inputs, profitMargin: markup };
+    setCalcResults(calculateCosts(updatedInputs));
   }, [markup, inputs]);
 
-  // Calcula métricas para exibição. Considera o preço manual se definido
-  const cost = calcResults.productionCost;
-
-  // Valor das taxas (fee) é a diferença entre o preço final com taxa e sem taxa
-  const feeValue = calcResults.finalPriceWithFee - calcResults.finalPrice;
-
-  let finalPrice = calcResults.finalPriceWithFee;
-  let profit = calcResults.profitAmount;
-
-  // Se houver um preço manual informado, ajusta o preço final e o lucro.
-  if (manualPrice !== undefined && manualPrice !== null) {
-    finalPrice = manualPrice;
-    profit = finalPrice - cost - feeValue;
-  }
-
-  // ROI (%) = lucro / custo * 100
-  const roiPercentage = cost > 0 ? (profit / cost) * 100 : 0;
-
-  // Margem real (%) = lucro / preço final * 100
-  const realMargin = finalPrice > 0 ? (profit / finalPrice) * 100 : 0;
-
-  // Desconto de atacado (percentual). Se não informado, assume 0.
-  const wholesaleDiscount = inputs.wholesaleDiscount ?? 0;
-
-  // Preço no atacado aplica o desconto sobre o preço final (já incluindo taxa)
-  const wholesalePrice = finalPrice * (1 - wholesaleDiscount / 100);
-
-  // Lucro líquido por unidade no atacado (seu lucro)
-  const wholesaleProfit = wholesalePrice - cost - feeValue;
-
-  // Lucro do revendedor por unidade (diferença entre preço de venda normal e preço atacado)
-  const resellerProfit = finalPrice - wholesalePrice;
-
-  // Margem de lucro do revendedor em relação ao preço de atacado
-  const resellerMargin = wholesalePrice > 0 ? (resellerProfit / wholesalePrice) * 100 : 0;
-
-  // Handler para alteração do slider de markup
   const handleSliderChange = (value: number[]) => {
-    if (Array.isArray(value) && value.length > 0) {
-      setMarkup(value[0]);
-    }
+    if (Array.isArray(value) && value.length > 0) setMarkup(value[0]);
   };
 
-  // Handler para alteração do campo manual de preço
   const handleManualPriceChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    if (val === "") {
-      setManualPrice(undefined);
-    } else {
-      const num = Number(val);
-      setManualPrice(isNaN(num) ? undefined : num);
-    }
+    setManualPrice(val === "" ? undefined : (isNaN(Number(val)) ? undefined : Number(val)));
   };
 
-  // Estado para controlar se o preço de atacado será usado ao gerar orçamentos
-  // Por padrão, utiliza o valor vindo das entradas ou false se não definido.
-  const [useWholesaleForQuote, setUseWholesaleForQuote] = useState<boolean>(inputs.useWholesalePrice ?? false);
-
-  // Handler para gerar orçamento com os valores atuais (vai para aba orçamento / gerar pdf)
-  const handleGenerateQuote = () => {
-    const updatedInputs: CalculatorInputs = {
-      ...inputs,
-      profitMargin: markup,
-      desiredPrice: manualPrice,
-      useWholesalePrice: useWholesaleForQuote,
-    };
-    const updatedResults = calculateCosts(updatedInputs);
-    onGenerateQuote(updatedInputs, updatedResults);
+  const handleAction = (actionFn: Function) => {
+    const updatedInputs = { ...inputs, profitMargin: markup, desiredPrice: manualPrice, useWholesalePrice: useWholesaleForQuote };
+    actionFn(updatedInputs, calculateCosts(updatedInputs));
   };
 
-  // Handler para adicionar item ao orçamento composto (multi itens)
-  const handleAddItem = () => {
-    const updatedInputs: CalculatorInputs = {
-      ...inputs,
-      profitMargin: markup,
-      desiredPrice: manualPrice,
-      useWholesalePrice: useWholesaleForQuote,
-    };
-    const updatedResults = calculateCosts(updatedInputs);
-    if (typeof onAddItemToQuote === "function") {
-      onAddItemToQuote(updatedInputs, updatedResults);
-    }
-  };
+  const qty = inputs.quantity > 0 ? inputs.quantity : 1;
+  const wholesaleDiscount = inputs.wholesaleDiscount ?? 0;
+
+  // Cálculos Base Totais
+  const costTotal = calcResults.productionCost;
+  const feeTotal = calcResults.finalPriceWithFee - calcResults.finalPrice;
+  
+  let saleTotal = calcResults.finalPriceWithFee;
+  let profitTotal = calcResults.profitAmount;
+
+  if (manualPrice !== undefined && manualPrice !== null) {
+    saleTotal = manualPrice;
+    profitTotal = saleTotal - costTotal - feeTotal;
+  }
+
+  const realMargin = saleTotal > 0 ? (profitTotal / saleTotal) * 100 : 0;
+  const wholesaleTotal = saleTotal * (1 - wholesaleDiscount / 100);
+  const wholesaleProfitTotal = wholesaleTotal - costTotal - feeTotal;
+  const wholesaleMargin = wholesaleTotal > 0 ? (wholesaleProfitTotal / wholesaleTotal) * 100 : 0;
+
+  // Cálculos Por Unidade
+  const costPerUnit = costTotal / qty;
+  const profitPerUnit = profitTotal / qty;
+  const salePerUnit = saleTotal / qty;
+  const wholesalePerUnit = wholesaleTotal / qty;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card className="border-2 shadow-xl">
         <CardHeader className="bg-gradient-primary text-primary-foreground">
           <CardTitle className="flex items-center gap-2">
@@ -150,207 +80,169 @@ export const CalculationCard = ({
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Preço de Venda</div>
-              <div className="text-2xl font-bold">R$ {finalPrice.toFixed(2)}</div>
-              {manualPrice !== undefined && (
-                <div className="text-xs text-muted-foreground">(Preço manual)</div>
+        <CardContent className="pt-6 space-y-6">
+          
+          <div className="bg-card rounded-lg border-2 shadow-sm p-5">
+            <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2 flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Resumo Financeiro ({qty} {qty === 1 ? 'peça' : 'peças'})
+            </h3>
+            
+            <div className="space-y-4">
+              {/* Custo Total */}
+              <div className="flex flex-col md:flex-row justify-between p-4 bg-muted/30 rounded-lg">
+                <div>
+                  <span className="text-muted-foreground font-semibold text-sm uppercase">Custo de Produção Total</span>
+                  {qty > 1 && (
+                    <div className="text-sm font-medium text-muted-foreground mt-1">
+                      Por unidade (R$ {costTotal.toFixed(2)} ÷ {qty}): <span className="font-bold text-foreground">R$ {costPerUnit.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right mt-2 md:mt-0">
+                  <span className="font-bold text-2xl">R$ {costTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Lucro Total */}
+              <div className="flex flex-col md:flex-row justify-between p-4 bg-success/10 rounded-lg border border-success/20">
+                <div>
+                  <span className="text-success font-bold text-sm uppercase">Lucro Líquido Total</span>
+                  {qty > 1 && (
+                    <div className="text-sm font-medium text-success/80 mt-1">
+                      Por unidade (R$ {profitTotal.toFixed(2)} ÷ {qty}): <span className="font-bold">R$ {profitPerUnit.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right mt-2 md:mt-0">
+                  <span className="font-bold text-2xl text-success">R$ {profitTotal.toFixed(2)}</span>
+                  <div className="text-sm font-bold text-success/80 mt-1">
+                    Margem: {realMargin.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Venda Total */}
+              <div className="flex flex-col md:flex-row justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <div>
+                  <span className="text-primary font-bold text-sm uppercase">Venda Normal Total</span>
+                  {qty > 1 && (
+                    <div className="text-sm font-medium text-primary/80 mt-1">
+                      Por unidade (R$ {saleTotal.toFixed(2)} ÷ {qty}): <span className="font-bold">R$ {salePerUnit.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right mt-2 md:mt-0">
+                  <span className="font-bold text-3xl text-primary">R$ {saleTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Atacado Total */}
+              {wholesaleDiscount > 0 && (
+                <div className="flex flex-col md:flex-row justify-between p-4 bg-accent/10 rounded-lg border border-accent/20">
+                  <div>
+                    <span className="text-accent font-bold text-sm uppercase">Atacado Total ({wholesaleDiscount}% OFF)</span>
+                    {qty > 1 && (
+                      <div className="text-sm font-medium text-accent/80 mt-1">
+                        Por unidade (R$ {wholesaleTotal.toFixed(2)} ÷ {qty}): <span className="font-bold">R$ {wholesalePerUnit.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right mt-2 md:mt-0">
+                    <span className="font-bold text-2xl text-accent">R$ {wholesaleTotal.toFixed(2)}</span>
+                    <div className="text-sm font-bold text-accent/80 mt-1">
+                      Lucro Real: {wholesaleMargin > 0 ? `${wholesaleMargin.toFixed(1)}%` : "Prejuízo"}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
+          </div>
 
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Lucro Líquido</div>
-              <div className={`text-2xl font-bold ${profit < 0 ? "text-destructive" : ""}`}>R$ {profit.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
-                {profit < 0 ? "Prejuízo" : `Lucro de ${realMargin.toFixed(1)}% sobre venda`}
+          <Separator />
+
+          <div className="space-y-4 bg-muted/30 p-5 rounded-lg border border-border">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="markupSlider" className="text-lg flex items-center gap-2">
+                <Percent className="h-5 w-5 text-primary" /> Simulador de Margem de Lucro
+              </Label>
+              <div className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md font-bold text-lg shadow-sm">
+                {markup}%
               </div>
             </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Custo de Produção</div>
-              <div className="text-2xl font-bold">R$ {cost.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">Inclui falha ({inputs.failureRate}%), embalagem e extras</div>
-            </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Taxas / Impostos</div>
-              <div className="text-2xl font-bold">R$ {feeValue.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">{inputs.additionalFee}% do valor de venda</div>
-            </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">ROI (%)</div>
-              <div className="text-2xl font-bold">{roiPercentage.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground">Retorno sobre o custo</div>
-            </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Margem Real (%)</div>
-              <div className="text-2xl font-bold">{realMargin.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground">Lucro / Preço de Venda</div>
-            </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Preço de Atacado</div>
-              <div className="text-2xl font-bold">R$ {wholesalePrice.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">Desconto de {wholesaleDiscount.toFixed(1)}%</div>
-            </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Lucro no Atacado</div>
-              <div className={`text-2xl font-bold ${wholesaleProfit < 0 ? "text-destructive" : ""}`}>R$ {wholesaleProfit.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">{wholesaleProfit < 0 ? "Prejuízo" : "Lucro por unidade para você"}</div>
-            </div>
-
-            <div className="p-3 bg-card rounded border flex flex-col justify-between">
-              <div className="text-sm text-muted-foreground mb-1">Margem do Revendedor</div>
-              <div className="text-2xl font-bold">{resellerMargin.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground">Lucro sobre o preço de atacado</div>
-            </div>
+            <Slider id="markupSlider" min={0} max={500} step={1} value={[markup]} onValueChange={handleSliderChange} className="py-4 cursor-pointer" />
           </div>
 
-          <Separator className="my-4" />
-
-          <div className="space-y-2">
-            <Label htmlFor="markupSlider" className="flex justify-between items-center">
-              <span>Markup (%)</span>
-              <span className="font-semibold">{markup}%</span>
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="wholesaleSwitch" className="flex justify-between items-center bg-card p-4 rounded border cursor-pointer hover:bg-muted/50 transition-colors">
+              <span className="font-medium">Usar preço de ATACADO ao gerar PDF / Orçamento</span>
+              <Switch id="wholesaleSwitch" checked={useWholesaleForQuote} onCheckedChange={(checked) => setUseWholesaleForQuote(checked as boolean)} />
             </Label>
-            <Slider id="markupSlider" min={0} max={500} step={1} value={[markup]} onValueChange={handleSliderChange} />
-            <p className="text-xs text-muted-foreground">Ajuste a margem de lucro em relação ao custo de produção.</p>
           </div>
 
-          <div className="space-y-1">
-            <InputWithLabel
-              label="Preço de Venda Manual (opcional)"
-              id="manualPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              value={manualPrice === undefined ? "" : manualPrice}
-              onChange={handleManualPriceChange}
-              placeholder="Insira um valor de venda..."
-            />
-            <p className="text-xs text-muted-foreground">Deixe em branco para usar o valor calculado.</p>
-          </div>
-
-          {/* Seletor para usar preço de atacado no orçamento */}
-          <div className="space-y-2">
-            <Label htmlFor="wholesaleSwitch" className="flex justify-between items-center">
-              <span>Usar preço de atacado no orçamento</span>
-              <Switch
-                id="wholesaleSwitch"
-                checked={useWholesaleForQuote}
-                onCheckedChange={(checked) => setUseWholesaleForQuote(checked as boolean)}
-              />
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Ao ativar, o valor de atacado será aplicado ao adicionar itens ao orçamento ou gerar PDF.
-            </p>
-          </div>
-
-          <Separator className="my-4" />
-
-          <div className="flex flex-col md:flex-row gap-4">
-            <Button onClick={() => setShowBreakdown(true)} className="flex-1 bg-gradient-accent text-accent-foreground hover:opacity-90">
-              <Info className="h-4 w-4 mr-2" />
-              Como os gastos foram calculados
+          <div className="flex flex-col md:flex-row gap-4 pt-4">
+            <Button onClick={() => setShowBreakdown(true)} variant="outline" className="flex-1 hover:bg-accent hover:text-accent-foreground border-2">
+              <Info className="h-4 w-4 mr-2" /> Raio-X dos Custos
             </Button>
-
-            <Button onClick={handleAddItem} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Adicionar ao Orçamento
+            <Button onClick={() => handleAction(onAddItemToQuote!)} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-md">
+              <Package className="h-4 w-4 mr-2" /> Adicionar ao Orçamento
             </Button>
-
-            <Button onClick={handleGenerateQuote} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Gerar PDF
+            <Button onClick={() => handleAction(onGenerateQuote)} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-md">
+              <DollarSign className="h-4 w-4 mr-2" /> Gerar PDF
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* NOVO MODAL DE RAIO-X COMPLETO */}
       {showBreakdown && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-card max-w-lg w-full rounded-lg shadow-lg overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-semibold">Raio-X do Preço</h2>
-              <button className="text-muted-foreground hover:text-foreground" onClick={() => setShowBreakdown(false)}>
-                <X className="h-5 w-5" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-card max-w-lg w-full rounded-xl shadow-2xl overflow-hidden border">
+            <div className="flex justify-between items-center p-5 border-b bg-muted/30">
+              <h2 className="text-lg font-bold">Raio-X dos Custos do Lote</h2>
+              <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowBreakdown(false)}><X className="h-5 w-5" /></button>
             </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-1">Distribuição do valor de venda</p>
-                <div className="flex h-4 w-full rounded overflow-hidden border">
-                  <div className="bg-destructive/50" style={{ width: `${finalPrice > 0 ? (cost / finalPrice) * 100 : 0}%` }} />
-                  <div className="bg-warning/50" style={{ width: `${finalPrice > 0 ? (feeValue / finalPrice) * 100 : 0}%` }} />
-                  <div className="bg-success/50" style={{ width: `${finalPrice > 0 ? (profit / finalPrice) * 100 : 0}%` }} />
-                </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span>Custo: {finalPrice > 0 ? ((cost / finalPrice) * 100).toFixed(1) : "0.0"}%</span>
-                  <span>Taxas: {finalPrice > 0 ? ((feeValue / finalPrice) * 100).toFixed(1) : "0.0"}%</span>
-                  <span>Lucro: {finalPrice > 0 ? ((profit / finalPrice) * 100).toFixed(1) : "0.0"}%</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium mb-1">1. Custo Industrial</p>
+            <div className="p-5 space-y-4">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span>Material Consumido</span>
-                  <span>R$ {calcResults.filamentCost.toFixed(2)}</span>
+                  <span className="font-medium">R$ {calcResults.filamentCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Energia Elétrica</span>
-                  <span>R$ {calcResults.energyCost.toFixed(2)}</span>
+                  <span className="font-medium">R$ {calcResults.energyCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Mão de Obra</span>
-                  <span>R$ {calcResults.laborCost.toFixed(2)}</span>
+                  <span>Mão de Obra e Acabamento</span>
+                  <span className="font-medium">R$ {(calcResults.laborCost + (inputs.finishingCost || 0)).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Manutenção</span>
-                  <span>R$ {calcResults.maintenanceTotalCost.toFixed(2)}</span>
+                  <span>Manutenção e Desgaste</span>
+                  <span className="font-medium">R$ {(calcResults.maintenanceTotalCost + calcResults.wearCost).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Acabamento</span>
-                  <span>R$ {inputs.finishingCost.toFixed(2)}</span>
+                  <span>Embalagem e Extras</span>
+                  <span className="font-medium">R$ {(calcResults.packagingCost + calcResults.extraCost).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Embalagem & Extras</span>
-                  <span>R$ {(calcResults.packagingCost + calcResults.extraCost).toFixed(2)}</span>
+                  <span>Margem de Falha/Perda ({inputs.failureRate || 0}%)</span>
+                  <span className="font-medium">R$ {calcResults.failureCost.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span>Margem de Falha</span>
-                  <span>R$ {calcResults.failureCost.toFixed(2)}</span>
+                
+                <Separator className="my-3" />
+                
+                <div className="flex justify-between font-bold text-base bg-muted/30 p-2 rounded">
+                  <span>Total Custo de Produção</span>
+                  <span>R$ {costTotal.toFixed(2)}</span>
                 </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between font-semibold text-sm">
-                  <span>Total Custo</span>
-                  <span>R$ {cost.toFixed(2)}</span>
+                
+                <div className="flex justify-between text-sm mt-2 pt-2 border-t text-muted-foreground">
+                  <span>Taxas de Marketplace Adicionais</span>
+                  <span className="font-medium">R$ {feeTotal.toFixed(2)}</span>
                 </div>
               </div>
-              <div className="mt-4 space-y-2">
-                <p className="text-sm font-medium mb-1">Markup e Taxas</p>
-                <div className="flex justify-between text-sm">
-                  <span>Markup de {markup.toFixed(0)}%</span>
-                  <span>R$ {calcResults.profitAmount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Taxa Marketplace ({inputs.additionalFee}%)</span>
-                  <span>R$ {feeValue.toFixed(2)}</span>
-                </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between font-semibold text-sm">
-                  <span>Lucro Líquido</span>
-                  <span>R$ {profit.toFixed(2)}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <Button onClick={() => setShowBreakdown(false)} variant="ghost" className="text-primary">
-                  Fechar
-                </Button>
+              <div className="text-right mt-6">
+                <Button onClick={() => setShowBreakdown(false)} variant="default" className="w-full">Fechar Raio-X</Button>
               </div>
             </div>
           </div>
