@@ -56,7 +56,7 @@ export const generateQuotePDF = (
     pdf.setTextColor(...white);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(24);
-    pdf.text("ORÃ‡AMENTO", margin, 20);
+    pdf.text("Orçamento", margin, 20);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(14);
     pdf.text("MALLKI PRINT", margin, 32);
@@ -233,20 +233,6 @@ export const generateQuotePDF = (
   pdf.text("TOTAL GERAL", margin + 2, y + 10);
   pdf.text(`R$ ${money(grandTotal, false)}`, margin + tableWidth - 2, y + 10, { align: "right" });
   y += 20;
-  // CondiÃ§Ãµes + assinatura
-  pdf.setTextColor(0, 0, 0);
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  ensureSpace(30);
-  pdf.text("Pagamento: 40% junto ao pedido e 60% na entrega", margin, y);
-  y += 7;
-  pdf.text("Prazo: 7 Dias uteis", margin, y);
-  y += 20;
-  pdf.setTextColor(80, 80, 80);
-  pdf.text("_________________________", margin, y);
-  pdf.text("", margin, y + 6);
-  pdf.text("Orçamentista", margin, y + 12);
-  drawFooter();
   const clientSlug = (clientName || "cliente")
     .toLowerCase()
     .replace(/\s+/g, "-")
