@@ -25,12 +25,30 @@ export const calculateCosts = (inputs: CalculatorInputs): CalculationResults => 
   const productionCost = costWithComplexity + failureCost;
   const costPerUnit = productionCost / qty;
 
-  const profitAmount = productionCost * (inputs.profitMargin / 100);
-  const profitPerUnit = profitAmount / qty;
+  // --- INÍCIO DA CORREÇÃO ---
+  let profitAmount = 0;
+  let finalPrice = 0;
+  let finalPriceWithFee = 0;
 
-  const finalPrice = productionCost + profitAmount;
-  const finalPriceWithFee = finalPrice * (1 + inputs.additionalFee / 100);
+  const feeMultiplier = 1 + (inputs.additionalFee || 0) / 100;
+
+  // Verifica se o utilizador preencheu um preço que deseja cobrar
+  if (inputs.desiredPrice && inputs.desiredPrice > 0) {
+    finalPriceWithFee = inputs.desiredPrice;
+    // Deduz a taxa adicional (se houver) para encontrar o preço base
+    finalPrice = finalPriceWithFee / feeMultiplier;
+    // Calcula o lucro real em cima desse preço forçado
+    profitAmount = finalPrice - productionCost;
+  } else {
+    // Se deixou em branco, faz o cálculo normal pela margem de lucro
+    profitAmount = productionCost * (inputs.profitMargin / 100);
+    finalPrice = productionCost + profitAmount;
+    finalPriceWithFee = finalPrice * feeMultiplier;
+  }
+
+  const profitPerUnit = profitAmount / qty;
   const finalPricePerUnit = finalPriceWithFee / qty;
+  // --- FIM DA CORREÇÃO ---
 
   const totalTime = printTime + inputs.activeWorkTime;
 
