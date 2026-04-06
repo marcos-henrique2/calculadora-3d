@@ -29,6 +29,8 @@ export interface CalculatorInputs {
   roundPrice: boolean;
   wholesaleDiscount?: number;
   useWholesalePrice?: boolean;
+
+  productImage?: string;
 }
 
 export interface CalculationResults {
@@ -52,4 +54,5 @@ export interface CalculationResults {
   finalPricePerUnit: number;
   wholesalePrice: number;
   wholesalePricePerUnit: number;
+  netMarginPercent: number;
 }

@@ -1,9 +1,20 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
-import { Trash2, Download, X } from "lucide-react";
+import { formatBRL } from "@/utils/calculator";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Trash2,
+  Download,
+  X,
+  Package,
+  FileText,
+  AlertCircle,
+  ShoppingCart,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type QuoteItem = {
   inputs: CalculatorInputs;
@@ -17,24 +28,23 @@ interface QuoteTabProps {
   onGeneratePDF: (items: QuoteItem[]) => void;
 }
 
-/**
- * Componente responsável por listar os itens adicionados ao orçamento, exibir o
- * total acumulado e permitir a geração de um PDF com todos os itens.
- * Foi adaptado para considerar o preço de atacado quando indicado nas
- * entradas de cada item (`inputs.useWholesalePrice`). Se verdadeiro, utiliza
- * `results.wholesalePrice` como base para o valor total; caso contrário,
- * utiliza `results.finalPriceWithFee`. O valor unitário é calculado a
- * partir do total dividido pela quantidade.
- */
-export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: QuoteTabProps) => {
+export const QuoteTab = ({
+  items,
+  onRemoveItem,
+  onClearItems,
+  onGeneratePDF,
+}: QuoteTabProps) => {
   const { toast } = useToast();
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  // Soma o valor total de cada item considerando preço normal ou atacado
   const grandTotal = items.reduce((acc, item) => {
     const { inputs, results } = item;
     const qty = Math.max(1, Number(inputs.quantity) || 1);
-    const useWholesale = !!inputs.useWholesalePrice && (inputs.wholesaleDiscount ?? 0) > 0;
-    const priceRaw = useWholesale ? results.wholesalePrice : results.finalPriceWithFee;
+    const useWholesale =
+      !!inputs.useWholesalePrice && (inputs.wholesaleDiscount ?? 0) > 0;
+    const priceRaw = useWholesale
+      ? results.wholesalePrice
+      : results.finalPriceWithFee;
     const totalPrice = inputs.roundPrice ? Math.round(priceRaw) : priceRaw;
     return acc + totalPrice;
   }, 0);
@@ -42,8 +52,8 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: Q
   const handleGenerate = () => {
     if (items.length === 0) {
       toast({
-        title: "Nenhum item",
-        description: "Adicione itens ao orçamento antes de gerar o PDF.",
+        title: "Orçamento vazio",
+        description: "Adicione itens antes de gerar o PDF.",
         variant: "destructive",
       });
       return;
@@ -51,138 +61,227 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: Q
     try {
       onGeneratePDF(items);
       toast({
-        title: "PDF Gerado!",
-        description: "O orçamento foi baixado com sucesso.",
+        title: "PDF gerado com sucesso!",
+        description: `${items.length} item(s) incluídos no orçamento.`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Erro ao gerar PDF",
-        description: "Ocorreu um erro ao gerar o PDF.",
+        description: "Tente novamente.",
         variant: "destructive",
       });
     }
   };
 
-  return (
-    <Card className="border-2 shadow-xl">
-      <CardHeader className="bg-gradient-primary text-primary-foreground rounded-t-xl">
-        <CardTitle className="text-2xl">Orçamento</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-6 space-y-6">
-        {items.length === 0 ? (
-          <p className="text-muted-foreground text-center">
-            Nenhum item adicionado ao orçamento. Adicione itens na aba Calculadora.
-          </p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-primary text-primary-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Qtd.</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Descrição</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Material</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Peso (g)</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Tempo (h:m)</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Pintura</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Valor total</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase">Valor unid.</th>
-                    <th className="px-3 py-2"></th>
-                  </tr>
-                </thead>
-                <tbody className="bg-card divide-y divide-gray-200">
-                  {items.map((item, idx) => {
-                    const { inputs, results } = item;
-                    const qty = Math.max(1, Number(inputs.quantity) || 1);
-                    const round = inputs.roundPrice;
-                    const useWholesale = !!inputs.useWholesalePrice && (inputs.wholesaleDiscount ?? 0) > 0;
-                    const priceRaw = useWholesale ? results.wholesalePrice : results.finalPriceWithFee;
-                    const totalPrice = round ? Math.round(priceRaw) : priceRaw;
-                    const unitPrice = totalPrice / qty;
+  const handleClear = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      setTimeout(() => setConfirmClear(false), 3000);
+      return;
+    }
+    onClearItems();
+    setConfirmClear(false);
+  };
 
-                    const totalHours = Number(results.totalTime) || 0;
-                    const hours = Math.floor(totalHours);
-                    const minutes = Math.round((totalHours - hours) * 60);
-                    const timeStr = `${hours}h ${minutes}m`;
-
-                    return (
-                      <tr key={idx} className={idx % 2 === 0 ? "bg-muted/50" : "bg-muted"}>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">{qty}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm">
-                      {/* Descrição com imagem opcional do produto */}
-                      {(() => {
-                        // Some projetos mais antigos podem não declarar o campo productImage em CalculatorInputs,
-                        // por isso acessamos através de any. Isso evita erro de tipagem em tempo de compilação.
-                        const img: string | undefined = (inputs as any).productImage;
-                        if (img) {
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <img
-                                src={img}
-                                alt="Foto do produto"
-                                className="w-8 h-8 object-cover rounded border"
-                              />
-                              <span className="whitespace-pre-line">{inputs.pieceName}</span>
-                            </div>
-                          );
-                        }
-                        return <span>{inputs.pieceName}</span>;
-                      })()}
-                    </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.material}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.filamentUsed?.toFixed(2) || 0}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">{timeStr}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">{inputs.manualPainting ? "Sim" : "Não"}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">R$ {round ? totalPrice.toFixed(0) : totalPrice.toFixed(2)}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm">R$ {round ? Math.round(unitPrice).toFixed(0) : unitPrice.toFixed(2)}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-right">
-                          <button className="text-red-600 hover:text-red-900" onClick={() => onRemoveItem(idx)} title="Remover item">
-                            <X className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex justify-end items-center mt-4">
-              <span className="font-semibold mr-2">Total Geral:</span>
-              <span className="text-xl font-bold">R$ {grandTotal.toFixed(2)}</span>
-            </div>
-          </>
-        )}
-        <Separator />
-        <div className="space-y-3">
-          <Button
-            onClick={handleGenerate}
-            className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-lg py-6"
-            disabled={items.length === 0}
-          >
-            <Download className="mr-2 h-5 w-5" /> Gerar Orçamento em PDF
-          </Button>
-          <Button
-            onClick={() => {
-              if (items.length === 0) {
-                toast({
-                  title: "Nenhum item",
-                  description: "Não há itens para limpar.",
-                  variant: "destructive",
-                });
-                return;
-              }
-              onClearItems();
-              toast({ title: "Orçamento limpo", description: "Todos os itens foram removidos." });
-            }}
-            className="w-full bg-gradient-accent hover:opacity-90 transition-opacity text-lg py-6"
-          >
-            <Trash2 className="mr-2 h-5 w-5" /> Limpar Orçamento
-          </Button>
-          <p className="text-xs text-center text-muted-foreground">
-            Os itens adicionados aqui serão incluídos no PDF com seus valores totais e unitários.
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-8 text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+          <ShoppingCart className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <div>
+          <h3 className="text-base font-medium text-foreground">
+            Nenhum item no orçamento
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1 text-balance">
+            Calcule um item na aba Calculadora e clique em{" "}
+            <strong>"Adicionar ao orçamento"</strong> para começar.
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5 animate-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-primary" />
+          <h2 className="text-base font-medium">Itens do orçamento</h2>
+          <Badge variant="secondary" className="font-mono">
+            {items.length}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClear}
+            className={cn(
+              "h-8 text-xs transition-colors",
+              confirmClear
+                ? "border-destructive text-destructive hover:bg-destructive/10"
+                : ""
+            )}
+          >
+            {confirmClear ? (
+              <>
+                <AlertCircle className="w-3 h-3 mr-1.5" />
+                Confirmar limpeza
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-3 h-3 mr-1.5" />
+                Limpar
+              </>
+            )}
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleGenerate}
+            className="h-8 text-xs bg-primary hover:bg-primary/90 shadow-sm"
+          >
+            <Download className="w-3 h-3 mr-1.5" />
+            Gerar PDF
+          </Button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                {[
+                  { label: "Qtd.", align: "left" },
+                  { label: "Descrição", align: "left" },
+                  { label: "Material", align: "left" },
+                  { label: "Peso", align: "right" },
+                  { label: "Tempo", align: "right" },
+                  { label: "Valor total", align: "right" },
+                  { label: "Valor unit.", align: "right" },
+                  { label: "", align: "right" },
+                ].map((col) => (
+                  <th
+                    key={col.label}
+                    className={cn(
+                      "px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap",
+                      col.align === "right" ? "text-right" : "text-left"
+                    )}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, idx) => {
+                const { inputs, results } = item;
+                const qty = Math.max(1, Number(inputs.quantity) || 1);
+                const round = inputs.roundPrice;
+                const useWholesale =
+                  !!inputs.useWholesalePrice &&
+                  (inputs.wholesaleDiscount ?? 0) > 0;
+                const priceRaw = useWholesale
+                  ? results.wholesalePrice
+                  : results.finalPriceWithFee;
+                const totalPrice = round ? Math.round(priceRaw) : priceRaw;
+                const unitPrice = totalPrice / qty;
+
+                const totalH = Math.floor(results.totalTime);
+                const totalM = Math.round((results.totalTime - totalH) * 60);
+
+                return (
+                  <tr
+                    key={idx}
+                    className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
+                  >
+                    <td className="px-4 py-3.5">
+                      <span className="font-mono font-medium text-foreground">
+                        {qty}×
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        {(inputs as any).productImage ? (
+                          <img
+                            src={(inputs as any).productImage}
+                            alt=""
+                            className="w-8 h-8 rounded-md object-cover border border-border shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                            <Package className="w-3.5 h-3.5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-foreground truncate max-w-[180px]">
+                            {inputs.pieceName}
+                          </p>
+                          {inputs.clientName && (
+                            <p className="text-xs text-muted-foreground">
+                              {inputs.clientName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <Badge
+                        variant="outline"
+                        className="text-xs font-normal"
+                      >
+                        {inputs.material}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground">
+                      {(inputs.filamentUsed ?? 0).toFixed(1)}g
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground whitespace-nowrap">
+                      {totalH}h {totalM}m
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-foreground">
+                      {formatBRL(totalPrice, round)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground">
+                      {formatBRL(unitPrice, round)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        onClick={() => onRemoveItem(idx)}
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto"
+                        title="Remover"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Total */}
+        <div className="px-4 py-4 bg-muted/30 border-t border-border">
+          <div className="flex items-center justify-end gap-4">
+            <span className="text-sm font-medium text-muted-foreground">
+              Total geral ({items.length} item{items.length > 1 ? "s" : ""})
+            </span>
+            <span className="text-2xl font-semibold font-mono text-primary">
+              {formatBRL(grandTotal)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Info */}
+      <p className="text-xs text-center text-muted-foreground">
+        Os preços exibidos refletem as configurações de cada item (atacado/arredondamento).
+        O PDF conterá todos os detalhes de cada peça.
+      </p>
+    </div>
   );
 };

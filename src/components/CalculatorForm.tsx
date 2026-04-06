@@ -1,28 +1,107 @@
 import { ChangeEvent, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InputWithLabel } from "@/components/ui/input-with-label";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Calculator, Package, Zap, Wrench, TrendingUp, Image as ImageIcon } from "lucide-react";
-import { CalculatorInputs } from "@/types/calculator";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { calculatorSchema } from "@/utils/validation";
+import { CalculatorInputs } from "@/types/calculator";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Calculator,
+  Package,
+  Zap,
+  Wrench,
+  TrendingUp,
+  ImageIcon,
+  Info,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CalculatorFormProps {
   inputs: CalculatorInputs;
   setInputs: (inputs: CalculatorInputs) => void;
-  // AQUI: Atualizado para receber os dados
   onCalculate: (data: CalculatorInputs) => void;
 }
 
+interface SectionProps {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const Section = ({ icon, title, description, children, className }: SectionProps) => (
+  <div className={cn("space-y-3", className)}>
+    <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
+        {description && (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+    </div>
+    <div className="space-y-3">{children}</div>
+  </div>
+);
+
+interface FieldProps {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const Field = ({ label, htmlFor, hint, error, children, className }: FieldProps) => (
+  <div className={cn("space-y-1.5", className)}>
+    <Label
+      htmlFor={htmlFor}
+      className="text-xs font-medium text-muted-foreground uppercase tracking-wide"
+    >
+      {label}
+    </Label>
+    {children}
+    {hint && !error && (
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
+        <Info className="w-3 h-3" />
+        {hint}
+      </p>
+    )}
+    {error && <p className="text-xs text-destructive font-medium">{error}</p>}
+  </div>
+);
+
+const Grid2 = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-2 gap-3">{children}</div>
+);
+
 export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFormProps) => {
-  const { register, handleSubmit, watch, setValue, reset, control, getValues, formState: { errors } } = useForm<CalculatorInputs>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    control,
+    getValues,
+    formState: { errors },
+  } = useForm<CalculatorInputs>({
     resolver: zodResolver(calculatorSchema as any),
     defaultValues: inputs,
-    mode: 'onBlur',
+    mode: "onBlur",
   });
 
   useEffect(() => {
@@ -33,14 +112,14 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
     const file = e.target.files?.[0];
     const currentData = getValues();
     if (!file) {
-      setValue('productImage' as any, undefined as any);
+      setValue("productImage" as any, undefined as any);
       setInputs({ ...(currentData as any), productImage: undefined } as any);
       return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result?.toString();
-      setValue('productImage' as any, base64 as any);
+      setValue("productImage" as any, base64 as any);
       setInputs({ ...(currentData as any), productImage: base64 || undefined } as any);
     };
     reader.readAsDataURL(file);
@@ -48,168 +127,422 @@ export const CalculatorForm = ({ inputs, setInputs, onCalculate }: CalculatorFor
 
   const onSubmit = (data: CalculatorInputs) => {
     setInputs(data);
-    // AQUI: Envia os dados instantâneos para evitar o erro do nome da peça
     onCalculate(data);
   };
 
+  const previewImg: string | undefined = (watch() as any).productImage || (inputs as any).productImage;
+
   return (
-    <div className="space-y-6">
-      {/* Dados da Peça */}
-      <Card className="border-2 hover:shadow-lg transition-all duration-300">
-        <CardHeader className="bg-gradient-primary text-primary-foreground rounded-t-xl">
-          <div className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            <CardTitle>Dados da Peça</CardTitle>
-          </div>
-          <CardDescription className="text-primary-foreground/80">
-            Informações básicas sobre o item a ser impresso
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-4">
-          <InputWithLabel label="Nome do Cliente" id="clientName" placeholder="Ex: João Silva" {...register('clientName')} />
-          <InputWithLabel label="Nome/Descrição da Peça" id="pieceName" placeholder="Ex: Suporte para celular" {...register('pieceName')} error={errors.pieceName?.message as any} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputWithLabel label="Quantidade" id="quantity" type="number" min="1" {...register('quantity', { valueAsNumber: true })} error={errors.quantity?.message as any} />
-            <InputWithLabel label="Material Utilizado" id="material" placeholder="Ex: PLA, ABS, PETG" {...register('material')} error={errors.material?.message as any} />
-          </div>
-          <div className="flex items-center space-x-2">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-6">
+      {/* ── PEÇA ── */}
+      <Section
+        icon={<Package className="w-3.5 h-3.5" />}
+        title="Dados da peça"
+        description="Identificação do cliente e do item"
+      >
+        <Field label="Nome do cliente" htmlFor="clientName">
+          <Input
+            id="clientName"
+            placeholder="Ex: João Silva"
+            className="h-9 text-sm"
+            {...register("clientName")}
+          />
+        </Field>
+
+        <Field
+          label="Descrição da peça *"
+          htmlFor="pieceName"
+          error={errors.pieceName?.message as string}
+        >
+          <Input
+            id="pieceName"
+            placeholder="Ex: Suporte articulado para celular"
+            className="h-9 text-sm"
+            {...register("pieceName")}
+          />
+        </Field>
+
+        <Grid2>
+          <Field
+            label="Quantidade"
+            htmlFor="quantity"
+            error={errors.quantity?.message as string}
+          >
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              className="h-9 text-sm font-mono"
+              {...register("quantity", { valueAsNumber: true })}
+            />
+          </Field>
+
+          <Field label="Material" htmlFor="material">
             <Controller
               control={control}
-              name="manualPainting"
+              name="material"
               render={({ field }) => (
-                <>
-                  <Checkbox id="manualPainting" checked={!!field.value} onCheckedChange={(val) => field.onChange(!!val)} />
-                  <Label htmlFor="manualPainting" className="cursor-pointer">Pintura manual necessária</Label>
-                </>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="material" className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["PLA", "PETG", "ABS", "TPU", "ASA", "Nylon", "Resina"].map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             />
-          </div>
-          <div className="flex flex-col space-y-2">
-            <Label htmlFor="productImage" className="flex items-center gap-1"><ImageIcon className="h-4 w-4" /> Foto do Produto</Label>
-            <input id="productImage" type="file" accept="image/*" onChange={handleImageChange} className="border rounded p-1 text-sm" />
-            {(() => {
-              const img: string | undefined = (watch() as any).productImage || (inputs as any).productImage;
-              if (img) return (<div className="mt-2"><img src={img} alt="Pré-visualização" className="h-20 w-20 object-cover rounded border" /></div>);
-              return null;
-            })()}
-          </div>
-        </CardContent>
-      </Card>
+          </Field>
+        </Grid2>
 
-      {/* Parâmetros da Impressão */}
-      <Card className="border-2 hover:shadow-lg transition-all duration-300">
-        <CardHeader className="bg-gradient-accent text-accent-foreground rounded-t-xl">
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            <CardTitle>Parâmetros da Impressão</CardTitle>
-          </div>
-          <CardDescription className="text-accent-foreground/80">Configurações técnicas de máquina</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputWithLabel label="Preço do Filamento (R$/kg)" id="filamentPrice" type="number" step="0.01" min="0" {...register('filamentPrice', { valueAsNumber: true })} />
-            <InputWithLabel label="Filamento Usado (g) - Total" id="filamentUsed" type="number" step="0.1" min="0" {...register('filamentUsed', { valueAsNumber: true })} />
-          </div>
-          <div className="space-y-2">
-            <Label>Tempo de Impressão - Total</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <InputWithLabel label="Horas" id="printTimeHours" type="number" min="0" {...register('printTimeHours', { valueAsNumber: true })} />
-              <InputWithLabel label="Minutos" id="printTimeMinutes" type="number" min="0" max="59" {...register('printTimeMinutes', { valueAsNumber: true })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputWithLabel label="Potência da Impressora (W)" id="printerPower" type="number" min="0" {...register('printerPower', { valueAsNumber: true })} />
-            <InputWithLabel label="Tarifa de Energia (R$/kWh)" id="energyRate" type="number" step="0.01" min="0" {...register('energyRate', { valueAsNumber: true })} />
-            <InputWithLabel label="Valor da Impressora (R$)" id="printerValue" type="number" step="0.01" min="0" {...register('printerValue', { valueAsNumber: true })} />
-            <InputWithLabel label="Vida Útil da Impressora (h)" id="printerLifespan" type="number" min="1" {...register('printerLifespan', { valueAsNumber: true })} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Trabalho e Estratégia */}
-      <Card className="border-2 hover:shadow-lg transition-all duration-300">
-        <CardHeader className="bg-gradient-primary text-primary-foreground rounded-t-xl">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-5 w-5" />
-            <CardTitle>Trabalho e Estratégia</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputWithLabel label="Valor da Hora de Trabalho (R$/h)" id="hourlyRate" type="number" step="0.01" min="0" {...register('hourlyRate', { valueAsNumber: true })} />
-            <InputWithLabel label="Tempo de Trabalho Ativo (h)" id="activeWorkTime" type="number" step="0.1" min="0" {...register('activeWorkTime', { valueAsNumber: true })} />
-            <InputWithLabel label="Custo de Acabamento (R$)" id="finishingCost" type="number" step="0.01" min="0" {...register('finishingCost', { valueAsNumber: true })} />
-            <InputWithLabel label="Custo de Manutenção (R$/h)" id="maintenanceCost" type="number" step="0.01" min="0" {...register('maintenanceCost', { valueAsNumber: true })} />
-            <InputWithLabel label="Taxa de Falha (%)" id="failureRate" type="number" step="0.1" min="0" max="100" {...register('failureRate', { valueAsNumber: true })} />
-            <InputWithLabel label="Custo de Embalagem (R$)" id="packagingCost" type="number" step="0.01" min="0" {...register('packagingCost', { valueAsNumber: true })} />
-            <InputWithLabel label="Custos Extras (R$)" id="extraCost" type="number" step="0.01" min="0" {...register('extraCost', { valueAsNumber: true })} />
-            <div className="space-y-2">
-              <Label htmlFor="complexity">Complexidade da Peça</Label>
-              <Controller
-                control={control}
-                name="complexity"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="complexity"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="simple">Simples (×1.0)</SelectItem>
-                      <SelectItem value="intermediate">Intermediária (×1.15)</SelectItem>
-                      <SelectItem value="high">Alta (×1.35)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+        <div className="flex items-center gap-2.5 py-1">
+          <Controller
+            control={control}
+            name="manualPainting"
+            render={({ field }) => (
+              <Checkbox
+                id="manualPainting"
+                checked={!!field.value}
+                onCheckedChange={(v) => field.onChange(!!v)}
               />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          />
+          <Label htmlFor="manualPainting" className="text-sm cursor-pointer font-normal">
+            Requer pintura manual
+          </Label>
+        </div>
 
-      {/* Margens e Taxas */}
-      <Card className="border-2 hover:shadow-lg transition-all duration-300">
-        <CardHeader className="bg-gradient-accent text-accent-foreground rounded-t-xl">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            <CardTitle>Margens e Taxas</CardTitle>
+        <Field label="Foto do produto (opcional)" htmlFor="productImage">
+          <div className="flex items-center gap-3">
+            <label
+              htmlFor="productImage"
+              className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-sm text-muted-foreground"
+            >
+              <ImageIcon className="w-4 h-4" />
+              <span>Escolher imagem</span>
+            </label>
+            <input
+              id="productImage"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            {previewImg && (
+              <img
+                src={previewImg}
+                alt="Preview"
+                className="h-10 w-10 rounded-md object-cover border border-border shadow-sm"
+              />
+            )}
           </div>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputWithLabel label="Taxa Adicional - Marketplace (% opcional)" id="additionalFee" type="number" step="0.1" min="0" {...register('additionalFee', { valueAsNumber: true })} />
-            <InputWithLabel label="Desconto de Atacado (%)" id="wholesaleDiscount" type="number" step="0.1" min="0" max="100" {...register('wholesaleDiscount', { valueAsNumber: true })} />
-          </div>
-          <div className="pt-2">
-            <InputWithLabel
-              label="Preço que Deseja Cobrar (R$ - opcional)"
+        </Field>
+      </Section>
+
+      {/* ── IMPRESSÃO ── */}
+      <Section
+        icon={<Zap className="w-3.5 h-3.5" />}
+        title="Parâmetros de impressão"
+        description="Filamento, tempo e consumo energético"
+      >
+        <Grid2>
+          <Field label="Filamento (R$/kg)" htmlFor="filamentPrice">
+            <Input
+              id="filamentPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("filamentPrice", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field
+            label="Consumo (g) — lote total"
+            htmlFor="filamentUsed"
+            hint="Total do lote, não por peça"
+          >
+            <Input
+              id="filamentUsed"
+              type="number"
+              step="0.1"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("filamentUsed", { valueAsNumber: true })}
+            />
+          </Field>
+        </Grid2>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Tempo de impressão — lote total
+          </Label>
+          <Grid2>
+            <div className="relative">
+              <Input
+                id="printTimeHours"
+                type="number"
+                min="0"
+                placeholder="0"
+                className="h-9 text-sm font-mono pr-10"
+                {...register("printTimeHours", { valueAsNumber: true })}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                h
+              </span>
+            </div>
+            <div className="relative">
+              <Input
+                id="printTimeMinutes"
+                type="number"
+                min="0"
+                max="59"
+                placeholder="0"
+                className="h-9 text-sm font-mono pr-10"
+                {...register("printTimeMinutes", { valueAsNumber: true })}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                min
+              </span>
+            </div>
+          </Grid2>
+        </div>
+
+        <Grid2>
+          <Field label="Potência da impressora (W)" htmlFor="printerPower">
+            <Input
+              id="printerPower"
+              type="number"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("printerPower", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Tarifa de energia (R$/kWh)" htmlFor="energyRate">
+            <Input
+              id="energyRate"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("energyRate", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Valor da impressora (R$)" htmlFor="printerValue">
+            <Input
+              id="printerValue"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("printerValue", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Vida útil (horas)" htmlFor="printerLifespan">
+            <Input
+              id="printerLifespan"
+              type="number"
+              min="1"
+              className="h-9 text-sm font-mono"
+              {...register("printerLifespan", { valueAsNumber: true })}
+            />
+          </Field>
+        </Grid2>
+      </Section>
+
+      {/* ── TRABALHO ── */}
+      <Section
+        icon={<Wrench className="w-3.5 h-3.5" />}
+        title="Trabalho e custos extras"
+        description="Mão de obra, acabamento e embalagem"
+      >
+        <Grid2>
+          <Field label="Valor hora/trabalho (R$/h)" htmlFor="hourlyRate">
+            <Input
+              id="hourlyRate"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("hourlyRate", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Tempo de trabalho ativo (h)" htmlFor="activeWorkTime">
+            <Input
+              id="activeWorkTime"
+              type="number"
+              step="0.1"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("activeWorkTime", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Acabamento (R$)" htmlFor="finishingCost">
+            <Input
+              id="finishingCost"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("finishingCost", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Manutenção (R$/h de impressão)" htmlFor="maintenanceCost">
+            <Input
+              id="maintenanceCost"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("maintenanceCost", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Embalagem (R$)" htmlFor="packagingCost">
+            <Input
+              id="packagingCost"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("packagingCost", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Custos extras (R$)" htmlFor="extraCost">
+            <Input
+              id="extraCost"
+              type="number"
+              step="0.01"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("extraCost", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Taxa de falha/perda (%)" htmlFor="failureRate">
+            <Input
+              id="failureRate"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              className="h-9 text-sm font-mono"
+              {...register("failureRate", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Complexidade da peça" htmlFor="complexity">
+            <Controller
+              control={control}
+              name="complexity"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="complexity" className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Simples ×1.0</SelectItem>
+                    <SelectItem value="intermediate">Média ×1.15</SelectItem>
+                    <SelectItem value="high">Alta ×1.35</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+        </Grid2>
+      </Section>
+
+      {/* ── PREÇO ── */}
+      <Section
+        icon={<TrendingUp className="w-3.5 h-3.5" />}
+        title="Precificação"
+        description="Margem, taxas e desconto de atacado"
+      >
+        <Grid2>
+          <Field label="Margem de lucro (%)" htmlFor="profitMargin">
+            <Input
+              id="profitMargin"
+              type="number"
+              step="1"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("profitMargin", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field
+            label="Taxa marketplace (%)"
+            htmlFor="additionalFee"
+            hint="Mercado Livre, Etsy, etc."
+          >
+            <Input
+              id="additionalFee"
+              type="number"
+              step="0.1"
+              min="0"
+              className="h-9 text-sm font-mono"
+              {...register("additionalFee", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field label="Desconto atacado (%)" htmlFor="wholesaleDiscount">
+            <Input
+              id="wholesaleDiscount"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              className="h-9 text-sm font-mono"
+              {...register("wholesaleDiscount", { valueAsNumber: true })}
+            />
+          </Field>
+          <Field
+            label="Preço desejado (R$)"
+            htmlFor="desiredPrice"
+            hint="Deixe vazio para calcular automaticamente"
+          >
+            <Input
               id="desiredPrice"
               type="number"
               step="0.01"
               min="0"
-              {...register('desiredPrice', { 
-                setValueAs: (v) => v === "" || v === undefined || Number.isNaN(Number(v)) ? undefined : Number(v) 
+              placeholder="Opcional"
+              className="h-9 text-sm font-mono"
+              {...register("desiredPrice", {
+                setValueAs: (v) =>
+                  v === "" || v === undefined || Number.isNaN(Number(v))
+                    ? undefined
+                    : Number(v),
               })}
-              placeholder="Deixe vazio para usar o preço calculado"
             />
-            <p className="text-xs text-muted-foreground mt-2">💡 Preencha para comparar seu preço com o valor sugerido pelo cálculo</p>
-          </div>
+          </Field>
+        </Grid2>
 
-          <div className="pt-4 flex items-center space-x-2">
-            <Controller
-              control={control}
-              name="roundPrice"
-              render={({ field }) => (
-                <>
-                  <Checkbox id="roundPrice" checked={!!field.value} onCheckedChange={(val) => field.onChange(!!val)} />
-                  <Label htmlFor="roundPrice" className="cursor-pointer">Arredondar preço final (valor inteiro)</Label>
-                </>
-              )}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex items-center gap-2.5 py-1">
+          <Controller
+            control={control}
+            name="roundPrice"
+            render={({ field }) => (
+              <Checkbox
+                id="roundPrice"
+                checked={!!field.value}
+                onCheckedChange={(v) => field.onChange(!!v)}
+              />
+            )}
+          />
+          <Label htmlFor="roundPrice" className="text-sm cursor-pointer font-normal">
+            Arredondar preço final para número inteiro
+          </Label>
+        </div>
+      </Section>
 
-      <Button onClick={handleSubmit(onSubmit)} className="w-full bg-gradient-primary hover:opacity-90 transition-opacity text-lg py-6" size="lg">
-        <Calculator className="mr-2 h-5 w-5" /> Calcular Custos
+      {/* ── SUBMIT ── */}
+      <Button
+        type="submit"
+        className="w-full h-11 text-base font-medium bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 transition-all"
+        size="lg"
+      >
+        <Calculator className="mr-2 h-4 w-4" />
+        Calcular custos
       </Button>
-    </div>
+    </form>
   );
 };

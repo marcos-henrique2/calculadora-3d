@@ -29,11 +29,8 @@ export const calculatorSchema = z.object({
   roundPrice: z.boolean(),
   wholesaleDiscount: z.number().min(0).max(100).optional(),
   useWholesalePrice: z.boolean().optional(),
-  setupFilament: z.number().min(0).optional().default(0),
-  setupTimeMinutes: z.number().min(0).optional().default(0),
-  dataInputMode: z.enum(['per_piece', 'batch']).optional().default('batch')
-  // allow productImage and other unknown fields for forward compatibility
-}).strict()
+  productImage: z.string().optional(),
+}).passthrough();
 
 export const validateCalculatorInputs = (inputs: CalculatorInputs) => {
   return calculatorSchema.safeParse(inputs);
