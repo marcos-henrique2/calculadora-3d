@@ -1,285 +1,220 @@
 import { useState, useEffect } from "react";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
-import { calculateCosts, formatBRL, formatTime } from "@/utils/calculator";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { calculateCosts, fmtBRL, fmtTime } from "@/utils/calculator";
+import { cn } from "@/lib/utils";
 import {
   DollarSign,
   TrendingUp,
   Clock,
   Package,
   BarChart2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  FileDown,
   AlertTriangle,
   CheckCircle,
   Info,
-  Plus,
-  FileDown,
-  ChevronDown,
-  ChevronUp,
-  Calculator,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-interface ResultsPanelProps {
+interface Props {
   inputs: CalculatorInputs;
   results: CalculationResults;
-  onGenerateQuote: (inputs: CalculatorInputs, results: CalculationResults) => void;
-  onAddItemToQuote: (inputs: CalculatorInputs, results: CalculationResults) => void;
+  onGenerateQuote: (i: CalculatorInputs, r: CalculationResults) => void;
+  onAddToQuote: (i: CalculatorInputs, r: CalculationResults) => void;
 }
 
-// ─────────────────────────── sub-components ───────────────────────────
-
-interface MetricCardProps {
-  label: string;
-  value: string;
-  sub?: string;
-  variant?: "default" | "primary" | "success" | "warning" | "destructive";
-  icon?: React.ReactNode;
-}
-
-const variantClasses = {
-  default: "bg-muted/50 border-border",
-  primary: "bg-primary/8 border-primary/20",
-  success: "bg-success/8 border-success/20",
-  warning: "bg-warning/8 border-warning/20",
-  destructive: "bg-destructive/8 border-destructive/20",
-};
-
-const valueClasses = {
-  default: "text-foreground",
-  primary: "text-primary",
-  success: "text-success",
-  warning: "text-warning",
-  destructive: "text-destructive",
-};
-
+/* ── Cartão de métrica simples ── */
 const MetricCard = ({
   label,
   value,
   sub,
   variant = "default",
-  icon,
-}: MetricCardProps) => (
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  variant?: "default" | "blue" | "green";
+}) => (
   <div
     className={cn(
-      "rounded-xl border p-4 space-y-1 transition-all hover:shadow-sm",
-      variantClasses[variant]
+      "rounded-xl border p-4 space-y-1",
+      variant === "default" && "bg-secondary border-border",
+      variant === "blue"    && "bg-blue-50 border-blue-200",
+      variant === "green"   && "bg-green-50 border-green-200"
     )}
   >
-    <div className="flex items-center justify-between">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        {label}
-      </p>
-      {icon && (
-        <div className="opacity-40">{icon}</div>
+    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+      {label}
+    </p>
+    <p
+      className={cn(
+        "text-[22px] font-semibold font-mono leading-none",
+        variant === "default" && "text-foreground",
+        variant === "blue"    && "text-blue-800",
+        variant === "green"   && "text-green-800"
       )}
-    </div>
-    <p className={cn("text-2xl font-semibold font-mono tracking-tight", valueClasses[variant])}>
+    >
       {value}
     </p>
-    {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    {sub && (
+      <p className="text-[12px] text-muted-foreground">{sub}</p>
+    )}
   </div>
 );
 
-interface BreakdownItemProps {
+/* ── Barra de custo ── */
+const BreakdownRow = ({
+  label,
+  value,
+  total,
+  color = "bg-primary",
+}: {
   label: string;
   value: number;
   total: number;
   color?: string;
-}
-
-const BreakdownItem = ({ label, value, total, color = "bg-primary" }: BreakdownItemProps) => {
+}) => {
   const pct = total > 0 ? Math.min(100, (value / total) * 100) : 0;
   return (
     <div className="space-y-1">
-      <div className="flex justify-between items-center text-sm">
+      <div className="flex justify-between text-[13px]">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-mono font-medium text-foreground">
-          {formatBRL(value)}
-        </span>
+        <span className="font-mono font-medium text-foreground">{fmtBRL(value)}</span>
       </div>
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      <div className="h-[3px] bg-border rounded-full overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", color)}
-          style={{ width: `${pct}%` }}
+          style={{ width: `${pct.toFixed(1)}%` }}
         />
       </div>
     </div>
   );
 };
 
-// ─────────────────────────── main component ───────────────────────────
-
-export const ResultsPanel = ({
-  inputs,
-  results: initialResults,
-  onGenerateQuote,
-  onAddItemToQuote,
-}: ResultsPanelProps) => {
-  const [sliderMargin, setSliderMargin] = useState(inputs.profitMargin);
-  const [simResults, setSimResults] = useState<CalculationResults>(initialResults);
-  const [showBreakdown, setShowBreakdown] = useState(false);
+export const ResultsPanel = ({ inputs, results: init, onGenerateQuote, onAddToQuote }: Props) => {
+  const [sliderVal, setSliderVal]   = useState(inputs.profitMargin);
+  const [simR, setSimR]             = useState<CalculationResults>(init);
+  const [showBreak, setShowBreak]   = useState(false);
   const [useWholesale, setUseWholesale] = useState(inputs.useWholesalePrice ?? false);
 
-  const qty = Math.max(1, inputs.quantity || 1);
+  const qty         = Math.max(1, inputs.quantity || 1);
+  const round       = inputs.roundPrice;
   const hasWholesale = (inputs.wholesaleDiscount ?? 0) > 0;
+  const fmt         = (v: number) => fmtBRL(v, round);
 
   useEffect(() => {
-    setSliderMargin(inputs.profitMargin);
-    setSimResults(initialResults);
-  }, [inputs, initialResults]);
+    setSliderVal(inputs.profitMargin);
+    setSimR(init);
+  }, [inputs, init]);
 
   const handleSlider = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    setSliderMargin(val);
-    const updated = calculateCosts({ ...inputs, profitMargin: val, desiredPrice: undefined });
-    setSimResults(updated);
+    const v = Number(e.target.value);
+    setSliderVal(v);
+    setSimR(calculateCosts({ ...inputs, profitMargin: v, desiredPrice: undefined }));
   };
 
-  const getActionInputs = () => ({
-    ...inputs,
-    profitMargin: sliderMargin,
-    useWholesalePrice: useWholesale,
-  });
+  const actionInputs  = () => ({ ...inputs, profitMargin: sliderVal, useWholesalePrice: useWholesale });
+  const actionResults = () => simR;
 
-  const getActionResults = () => simResults;
+  /* Análise do preço desejado */
+  const desired = inputs.desiredPrice;
+  const hasDes  = (desired ?? 0) > 0;
+  const diff    = hasDes ? desired! - init.finalPriceWithFee : 0;
+  const diffPct = init.finalPriceWithFee > 0 ? (diff / init.finalPriceWithFee) * 100 : 0;
+  const status  = diffPct < -10 ? "low" : diffPct <= 15 ? "ideal" : "high";
 
-  const round = inputs.roundPrice;
-  const fmt = (v: number) => formatBRL(v, round);
+  /* ROI */
+  const ppu           = init.profitPerUnit;
+  const pieces        = ppu > 0 ? Math.ceil(inputs.printerValue / ppu) : null;
+  const months        = pieces ? (pieces / 30).toFixed(1) : null;
+  const monthlyProfit = ppu > 0 ? ppu * 30 : null;
 
-  // active price (slider simulation)
-  const activePrice = simResults.finalPriceWithFee;
-  const activePricePerUnit = simResults.finalPricePerUnit;
-  const activeProfit = simResults.profitAmount;
-  const activeProfitPerUnit = simResults.profitPerUnit;
-  const activeMargin = simResults.netMarginPercent;
-
-  // Price analysis
-  const desiredPrice = inputs.desiredPrice;
-  const hasPriceAnalysis = desiredPrice && desiredPrice > 0;
-  const priceDiff = hasPriceAnalysis ? desiredPrice - initialResults.finalPriceWithFee : 0;
-  const priceDiffPct = initialResults.finalPriceWithFee > 0
-    ? (priceDiff / initialResults.finalPriceWithFee) * 100
-    : 0;
-  const priceStatus =
-    priceDiffPct < -10 ? "low" : priceDiffPct <= 15 ? "ideal" : "high";
-
-  // ROI
-  const profitPerUnit = initialResults.profitPerUnit;
-  const piecesToRecover =
-    profitPerUnit > 0 ? Math.ceil(inputs.printerValue / profitPerUnit) : null;
-  const monthsToRecover = piecesToRecover ? (piecesToRecover / 30).toFixed(1) : null;
-  const monthlyProfit = profitPerUnit > 0 ? profitPerUnit * 30 : null;
-
-  // Breakdown
-  const breakdownItems = [
-    { label: "Filamento", value: initialResults.filamentCost, color: "bg-primary" },
-    { label: "Energia elétrica", value: initialResults.energyCost, color: "bg-primary/70" },
-    { label: "Desgaste da impressora", value: initialResults.wearCost, color: "bg-primary/50" },
-    { label: "Mão de obra", value: initialResults.laborCost, color: "bg-accent" },
-    { label: "Manutenção", value: initialResults.maintenanceTotalCost, color: "bg-accent/70" },
-    { label: "Acabamento", value: inputs.finishingCost || 0, color: "bg-warning" },
-    { label: "Embalagem", value: initialResults.packagingCost, color: "bg-warning/70" },
-    { label: "Extras", value: initialResults.extraCost, color: "bg-muted-foreground/50" },
-    { label: `Margem de falha (${inputs.failureRate}%)`, value: initialResults.failureCost, color: "bg-destructive/60" },
-  ].filter((item) => item.value > 0);
-
-  const totalH = Math.floor(initialResults.totalTime);
-  const totalM = Math.round((initialResults.totalTime - totalH) * 60);
+  /* Breakdown */
+  const breaks = [
+    { label: "Filamento",           value: init.filamentCost,         color: "bg-blue-500" },
+    { label: "Energia elétrica",    value: init.energyCost,           color: "bg-blue-400" },
+    { label: "Desgaste impressora", value: init.wearCost,             color: "bg-blue-300" },
+    { label: "Mão de obra",         value: init.laborCost,            color: "bg-green-500" },
+    { label: "Manutenção",          value: init.maintenanceTotalCost, color: "bg-green-400" },
+    { label: "Acabamento",          value: inputs.finishingCost || 0, color: "bg-yellow-400" },
+    { label: "Embalagem",           value: init.packagingCost,        color: "bg-yellow-300" },
+    { label: "Extras",              value: init.extraCost,            color: "bg-gray-400" },
+    {
+      label: `Margem de falha (${inputs.failureRate}%)`,
+      value: init.failureCost,
+      color: "bg-red-400",
+    },
+  ].filter((b) => b.value > 0);
 
   return (
-    <div className="space-y-5 animate-in">
-      {/* ── PRICE HERO ── */}
-      <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-lg shadow-primary/20">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-primary-foreground/70 text-sm font-medium mb-1">
-              Preço de venda sugerido
-            </p>
-            <p className="text-4xl font-semibold font-mono tracking-tight">
-              {fmt(initialResults.finalPriceWithFee)}
-            </p>
-            <p className="text-primary-foreground/60 text-sm mt-1.5">
-              por peça: {fmt(initialResults.finalPricePerUnit)}
-            </p>
-            {qty > 1 && (
-              <p className="text-primary-foreground/50 text-xs mt-0.5">
-                lote de {qty} peças
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="bg-white/15 border border-white/20 rounded-xl px-4 py-2 text-center min-w-[90px]">
-              <p className="text-primary-foreground/60 text-xs mb-0.5">Margem líquida</p>
-              <p className="text-xl font-semibold font-mono">
-                {initialResults.netMarginPercent.toFixed(1)}%
-              </p>
-            </div>
-            {hasWholesale && (
-              <div className="bg-white/10 border border-white/15 rounded-xl px-4 py-2 text-center min-w-[90px]">
-                <p className="text-primary-foreground/60 text-xs mb-0.5">
-                  Atacado ({inputs.wholesaleDiscount}% off)
-                </p>
-                <p className="text-lg font-semibold font-mono">
-                  {fmt(initialResults.wholesalePrice)}
-                </p>
-              </div>
-            )}
-          </div>
+    <div className="space-y-4 slide-up">
+
+      {/* ── HERO: Preço principal ── */}
+      <div className="rounded-2xl bg-primary p-6 text-white">
+        <p className="text-[12px] font-medium text-white/60 uppercase tracking-wider mb-1">
+          Preço de venda sugerido
+        </p>
+        <p className="text-[40px] font-semibold font-mono leading-none tracking-tight">
+          {fmt(init.finalPriceWithFee)}
+        </p>
+        <p className="text-[13px] text-white/55 mt-1.5">
+          por peça: {fmt(init.finalPricePerUnit)}
+          {qty > 1 && ` · lote de ${qty} peças`}
+        </p>
+
+        {/* Pills */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          <span className="bg-white/15 border border-white/20 rounded-full px-3 py-1 text-[12px] text-white">
+            <span className="text-white/55 mr-1">Margem</span>
+            {init.netMarginPercent.toFixed(1)}%
+          </span>
+          <span className="bg-white/15 border border-white/20 rounded-full px-3 py-1 text-[12px] text-white">
+            <span className="text-white/55 mr-1">Lucro</span>
+            {fmt(init.profitAmount)}
+          </span>
+          {hasWholesale && (
+            <span className="bg-white/10 border border-white/15 rounded-full px-3 py-1 text-[12px] text-white">
+              <span className="text-white/55 mr-1">Atacado</span>
+              {fmt(init.wholesalePrice)}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* ── PRICE ANALYSIS ── */}
-      {hasPriceAnalysis && (
+      {/* ── Análise do preço desejado ── */}
+      {hasDes && (
         <div
           className={cn(
             "rounded-xl border p-4",
-            priceStatus === "low" && "bg-destructive/5 border-destructive/20",
-            priceStatus === "ideal" && "bg-success/5 border-success/20",
-            priceStatus === "high" && "bg-warning/5 border-warning/20"
+            status === "low"  && "bg-red-50 border-red-200",
+            status === "ideal"&& "bg-green-50 border-green-200",
+            status === "high" && "bg-yellow-50 border-yellow-200",
           )}
         >
-          <div className="flex items-start gap-3">
-            {priceStatus === "low" && (
-              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
-            )}
-            {priceStatus === "ideal" && (
-              <CheckCircle className="w-5 h-5 text-success mt-0.5 shrink-0" />
-            )}
-            {priceStatus === "high" && (
-              <Info className="w-5 h-5 text-warning mt-0.5 shrink-0" />
-            )}
-            <div className="flex-1">
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  priceStatus === "low" && "text-destructive",
-                  priceStatus === "ideal" && "text-success",
-                  priceStatus === "high" && "text-warning"
-                )}
-              >
-                {priceStatus === "low" && "Preço abaixo do recomendado"}
-                {priceStatus === "ideal" && "Preço dentro da faixa ideal"}
-                {priceStatus === "high" && "Preço acima do recomendado"}
+          <div className="flex gap-3 items-start">
+            {status === "low"   && <AlertTriangle size={18} className="text-red-600 mt-0.5 shrink-0" />}
+            {status === "ideal" && <CheckCircle   size={18} className="text-green-700 mt-0.5 shrink-0" />}
+            {status === "high"  && <Info          size={18} className="text-yellow-700 mt-0.5 shrink-0" />}
+            <div>
+              <p className={cn("text-[14px] font-semibold",
+                status === "low"  && "text-red-800",
+                status === "ideal"&& "text-green-800",
+                status === "high" && "text-yellow-800",
+              )}>
+                {status === "low"  && "Preço abaixo do recomendado"}
+                {status === "ideal"&& "Preço dentro da faixa ideal"}
+                {status === "high" && "Preço acima do recomendado"}
               </p>
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {[
-                  { label: "Seu preço", value: fmt(desiredPrice!) },
-                  { label: "Sugerido", value: fmt(initialResults.finalPriceWithFee) },
-                  {
-                    label: "Diferença",
-                    value: `${priceDiff >= 0 ? "+" : ""}${fmt(priceDiff)}`,
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="bg-background/60 rounded-lg p-2 text-center"
-                  >
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                    <p className="text-sm font-semibold font-mono mt-0.5">{item.value}</p>
+                  { label: "Seu preço",  val: fmt(desired!) },
+                  { label: "Sugerido",   val: fmt(init.finalPriceWithFee) },
+                  { label: "Diferença",  val: `${diff >= 0 ? "+" : ""}${fmt(diff)}` },
+                ].map((c) => (
+                  <div key={c.label} className="bg-white/70 rounded-lg p-2 text-center">
+                    <p className="text-[11px] text-muted-foreground">{c.label}</p>
+                    <p className="text-[13px] font-semibold font-mono mt-0.5">{c.val}</p>
                   </div>
                 ))}
               </div>
@@ -288,45 +223,43 @@ export const ResultsPanel = ({
         </div>
       )}
 
-      {/* ── METRICS GRID ── */}
+      {/* ── Grid de métricas ── */}
       <div className="grid grid-cols-2 gap-3">
         <MetricCard
           label="Custo de produção"
-          value={fmt(initialResults.productionCost)}
-          sub={`por unidade: ${fmt(initialResults.costPerUnit)}`}
-          icon={<DollarSign className="w-4 h-4" />}
+          value={fmt(init.productionCost)}
+          sub={`por unidade: ${fmt(init.costPerUnit)}`}
         />
         <MetricCard
           label="Lucro líquido"
-          value={fmt(initialResults.profitAmount)}
-          sub={`por unidade: ${fmt(initialResults.profitPerUnit)}`}
-          variant={initialResults.profitAmount >= 0 ? "success" : "destructive"}
-          icon={<TrendingUp className="w-4 h-4" />}
+          value={fmt(init.profitAmount)}
+          sub={`por unidade: ${fmt(init.profitPerUnit)}`}
+          variant={init.profitAmount >= 0 ? "green" : "default"}
         />
         <MetricCard
-          label="Preço final c/ taxas"
-          value={fmt(initialResults.finalPriceWithFee)}
-          sub={inputs.additionalFee > 0 ? `inclui ${inputs.additionalFee}% de taxa` : "sem taxa adicional"}
-          variant="primary"
-          icon={<DollarSign className="w-4 h-4" />}
+          label="Preço c/ taxas"
+          value={fmt(init.finalPriceWithFee)}
+          sub={inputs.additionalFee > 0 ? `inclui ${inputs.additionalFee}% de taxa` : "sem taxa extra"}
+          variant="blue"
         />
         <MetricCard
           label="Tempo total"
-          value={formatTime(initialResults.totalTime)}
+          value={fmtTime(init.totalTime)}
           sub={`impressão + ${inputs.activeWorkTime}h trabalho`}
-          icon={<Clock className="w-4 h-4" />}
         />
       </div>
 
-      {/* ── MARGIN SIMULATOR ── */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      {/* ── Simulador de margem ── */}
+      <div className="rounded-xl border border-border bg-white p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Simulador de margem</span>
+            <BarChart2 size={16} className="text-primary" />
+            <span className="text-[14px] font-medium text-foreground">
+              Simulador de margem
+            </span>
           </div>
-          <span className="font-mono text-lg font-semibold text-primary">
-            {sliderMargin}%
+          <span className="text-[22px] font-semibold font-mono text-primary">
+            {sliderVal}%
           </span>
         </div>
 
@@ -335,75 +268,68 @@ export const ResultsPanel = ({
           min="0"
           max="500"
           step="1"
-          value={sliderMargin}
+          value={sliderVal}
           onChange={handleSlider}
-          className="w-full"
-          style={{
-            accentColor: "hsl(var(--primary))",
-          }}
         />
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-muted/50 rounded-lg p-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Preço simulado</p>
-            <p className="font-mono font-semibold text-foreground">
-              {fmt(simResults.finalPriceWithFee)}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-secondary rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground mb-1">Preço simulado</p>
+            <p className="text-[16px] font-semibold font-mono text-foreground">
+              {fmt(simR.finalPriceWithFee)}
             </p>
           </div>
-          <div className="bg-success/8 border border-success/20 rounded-lg p-3">
-            <p className="text-xs text-muted-foreground mb-0.5">Lucro simulado</p>
-            <p className="font-mono font-semibold text-success">
-              {fmt(simResults.profitAmount)}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground mb-1">Lucro simulado</p>
+            <p className="text-[16px] font-semibold font-mono text-green-800">
+              {fmt(simR.profitAmount)}
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── BREAKDOWN ── */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* ── Breakdown de custos ── */}
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
         <button
-          onClick={() => setShowBreakdown(!showBreakdown)}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
+          onClick={() => setShowBreak(!showBreak)}
+          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-secondary/50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Composição dos custos</span>
-            <Badge variant="secondary" className="text-xs font-mono">
-              {formatBRL(initialResults.productionCost)}
-            </Badge>
+            <span className="text-[14px] font-medium text-foreground">
+              Composição dos custos
+            </span>
+            <span className="text-[12px] text-muted-foreground font-mono">
+              {fmt(init.productionCost)}
+            </span>
           </div>
-          {showBreakdown ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
+          {showBreak
+            ? <ChevronUp   size={16} className="text-muted-foreground" />
+            : <ChevronDown size={16} className="text-muted-foreground" />
+          }
         </button>
 
-        {showBreakdown && (
-          <div className="px-4 pb-4 space-y-3 border-t border-border">
-            <div className="pt-3 space-y-3">
-              {breakdownItems.map((item) => (
-                <BreakdownItem
-                  key={item.label}
-                  label={item.label}
-                  value={item.value}
-                  total={initialResults.productionCost}
-                  color={item.color}
-                />
-              ))}
-            </div>
-            <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Total de produção</span>
-              <span className="font-mono font-semibold text-primary">
-                {formatBRL(initialResults.productionCost)}
+        {showBreak && (
+          <div className="px-5 pb-5 border-t border-border space-y-3 pt-4">
+            {breaks.map((b) => (
+              <BreakdownRow
+                key={b.label}
+                label={b.label}
+                value={b.value}
+                total={init.productionCost}
+                color={b.color}
+              />
+            ))}
+            <div className="pt-3 border-t border-border flex justify-between text-[13px]">
+              <span className="font-medium text-foreground">Total de produção</span>
+              <span className="font-semibold font-mono text-primary">
+                {fmtBRL(init.productionCost)}
               </span>
             </div>
             {inputs.additionalFee > 0 && (
-              <div className="flex justify-between items-center text-sm text-muted-foreground">
+              <div className="flex justify-between text-[13px] text-muted-foreground">
                 <span>Taxa marketplace ({inputs.additionalFee}%)</span>
                 <span className="font-mono">
-                  {formatBRL(initialResults.finalPriceWithFee - initialResults.finalPrice)}
+                  {fmtBRL(init.finalPriceWithFee - init.finalPrice)}
                 </span>
               </div>
             )}
@@ -412,78 +338,84 @@ export const ResultsPanel = ({
       </div>
 
       {/* ── ROI ── */}
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="rounded-xl border border-border bg-white p-5">
         <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium">Retorno sobre investimento</span>
+          <TrendingUp size={16} className="text-primary" />
+          <span className="text-[14px] font-medium text-foreground">
+            Retorno sobre investimento
+          </span>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
             {
-              icon: <Package className="w-5 h-5 text-primary" />,
-              value: piecesToRecover
-                ? piecesToRecover.toLocaleString("pt-BR")
-                : "—",
+              icon: <Package  size={18} className="text-primary" />,
+              value: pieces ? pieces.toLocaleString("pt-BR") : "—",
               label: "peças para recuperar a impressora",
             },
             {
-              icon: <Clock className="w-5 h-5 text-accent" />,
-              value: monthsToRecover ? `${monthsToRecover}m` : "—",
-              label: "meses estimados (30 peças/mês)",
+              icon: <Clock    size={18} className="text-blue-600" />,
+              value: months ? `${months}m` : "—",
+              label: "meses (est. 30 pç/mês)",
             },
             {
-              icon: <DollarSign className="w-5 h-5 text-success" />,
-              value: monthlyProfit ? formatBRL(monthlyProfit) : "—",
+              icon: <DollarSign size={18} className="text-green-700" />,
+              value: monthlyProfit ? fmtBRL(monthlyProfit) : "—",
               label: "lucro mensal estimado",
             },
-          ].map((item, i) => (
-            <div key={i} className="bg-muted/40 rounded-lg p-3 text-center">
-              <div className="flex justify-center mb-2">{item.icon}</div>
-              <p className="font-mono font-semibold text-base text-foreground">
-                {item.value}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 leading-tight">
-                {item.label}
-              </p>
+          ].map((c, i) => (
+            <div key={i} className="bg-secondary rounded-lg p-3 text-center">
+              <div className="flex justify-center mb-2">{c.icon}</div>
+              <p className="text-[15px] font-semibold font-mono text-foreground">{c.value}</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-tight">{c.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── WHOLESALE TOGGLE ── */}
+      {/* ── Toggle atacado ── */}
       {hasWholesale && (
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/30 rounded-xl border border-border">
+        <label className="flex items-center justify-between px-4 py-3.5 bg-secondary rounded-xl border border-border cursor-pointer">
           <div>
-            <p className="text-sm font-medium">Usar preço de atacado no PDF</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {formatBRL(initialResults.wholesalePrice)} ao invés de{" "}
-              {formatBRL(initialResults.finalPriceWithFee)}
+            <p className="text-[14px] font-medium text-foreground">
+              Usar preço de atacado no PDF
+            </p>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              {fmt(init.wholesalePrice)} em vez de {fmt(init.finalPriceWithFee)}
             </p>
           </div>
-          <Switch
+          <input
+            type="checkbox"
             checked={useWholesale}
-            onCheckedChange={setUseWholesale}
+            onChange={(e) => setUseWholesale(e.target.checked)}
+            className="w-[18px] h-[18px] accent-primary cursor-pointer"
           />
-        </div>
+        </label>
       )}
 
-      {/* ── ACTIONS ── */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="h-10 border-border hover:bg-muted/50"
-          onClick={() => onAddItemToQuote(getActionInputs(), getActionResults())}
+      {/* ── Ações ── */}
+      <div className="grid grid-cols-2 gap-3 pb-2">
+        <button
+          onClick={() => onAddToQuote(actionInputs(), actionResults())}
+          className="
+            h-12 rounded-xl border border-border bg-white
+            hover:bg-secondary text-[14px] font-medium text-foreground
+            flex items-center justify-center gap-2 transition-colors
+          "
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus size={16} />
           Adicionar ao orçamento
-        </Button>
-        <Button
-          className="h-10 bg-primary hover:bg-primary/90 shadow-sm shadow-primary/20"
-          onClick={() => onGenerateQuote(getActionInputs(), getActionResults())}
+        </button>
+        <button
+          onClick={() => onGenerateQuote(actionInputs(), actionResults())}
+          className="
+            h-12 rounded-xl bg-primary hover:bg-primary/90
+            text-[14px] font-medium text-white
+            flex items-center justify-center gap-2 transition-colors
+          "
         >
-          <FileDown className="w-4 h-4 mr-2" />
+          <FileDown size={16} />
           Gerar PDF
-        </Button>
+        </button>
       </div>
     </div>
   );

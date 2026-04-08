@@ -1,75 +1,51 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { CalculatorInputs, CalculationResults } from "@/types/calculator";
-import { formatBRL } from "@/utils/calculator";
+import { fmtBRL, fmtTime } from "@/utils/calculator";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
-  Trash2,
+  ShoppingCart,
   Download,
+  Trash2,
   X,
   Package,
   FileText,
   AlertCircle,
-  ShoppingCart,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type QuoteItem = {
   inputs: CalculatorInputs;
   results: CalculationResults;
 };
 
-interface QuoteTabProps {
+interface Props {
   items: QuoteItem[];
   onRemoveItem: (index: number) => void;
   onClearItems: () => void;
   onGeneratePDF: (items: QuoteItem[]) => void;
 }
 
-export const QuoteTab = ({
-  items,
-  onRemoveItem,
-  onClearItems,
-  onGeneratePDF,
-}: QuoteTabProps) => {
+export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: Props) => {
   const { toast } = useToast();
   const [confirmClear, setConfirmClear] = useState(false);
 
-  const grandTotal = items.reduce((acc, item) => {
-    const { inputs, results } = item;
-    const qty = Math.max(1, Number(inputs.quantity) || 1);
-    const useWholesale =
-      !!inputs.useWholesalePrice && (inputs.wholesaleDiscount ?? 0) > 0;
-    const priceRaw = useWholesale
-      ? results.wholesalePrice
-      : results.finalPriceWithFee;
-    const totalPrice = inputs.roundPrice ? Math.round(priceRaw) : priceRaw;
-    return acc + totalPrice;
+  const grandTotal = items.reduce((acc, { inputs, results }) => {
+    const qty  = Math.max(1, Number(inputs.quantity) || 1);
+    const useW = !!inputs.useWholesalePrice && (inputs.wholesaleDiscount ?? 0) > 0;
+    const raw  = useW ? results.wholesalePrice : results.finalPriceWithFee;
+    return acc + (inputs.roundPrice ? Math.round(raw) : raw);
   }, 0);
 
   const handleGenerate = () => {
-    if (items.length === 0) {
-      toast({
-        title: "Orçamento vazio",
-        description: "Adicione itens antes de gerar o PDF.",
-        variant: "destructive",
-      });
+    if (!items.length) {
+      toast({ title: "Orçamento vazio", description: "Adicione itens antes de gerar o PDF.", variant: "destructive" });
       return;
     }
     try {
       onGeneratePDF(items);
-      toast({
-        title: "PDF gerado com sucesso!",
-        description: `${items.length} item(s) incluídos no orçamento.`,
-      });
+      toast({ title: "PDF gerado!", description: `${items.length} item(s) incluídos.` });
     } catch {
-      toast({
-        title: "Erro ao gerar PDF",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
     }
   };
 
@@ -81,21 +57,21 @@ export const QuoteTab = ({
     }
     onClearItems();
     setConfirmClear(false);
+    toast({ title: "Orçamento limpo" });
   };
 
-  if (items.length === 0) {
+  /* ── Estado vazio ── */
+  if (!items.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-8 text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-          <ShoppingCart className="w-8 h-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center min-h-[420px] text-center px-8 space-y-5">
+        <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center">
+          <ShoppingCart size={36} className="text-muted-foreground" />
         </div>
         <div>
-          <h3 className="text-base font-medium text-foreground">
-            Nenhum item no orçamento
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1 text-balance">
-            Calcule um item na aba Calculadora e clique em{" "}
-            <strong>"Adicionar ao orçamento"</strong> para começar.
+          <h3 className="text-[16px] font-semibold text-foreground">Nenhum item ainda</h3>
+          <p className="text-[14px] text-muted-foreground mt-1.5 max-w-xs">
+            Calcule um item na aba <strong>Calculadora</strong> e clique em
+            {" "}<strong>Adicionar ao orçamento</strong>.
           </p>
         </div>
       </div>
@@ -103,158 +79,147 @@ export const QuoteTab = ({
   }
 
   return (
-    <div className="space-y-5 animate-in">
-      {/* Header */}
+    <div className="space-y-5">
+
+      {/* ── Cabeçalho ── */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-primary" />
-          <h2 className="text-base font-medium">Itens do orçamento</h2>
-          <Badge variant="secondary" className="font-mono">
+        <div className="flex items-center gap-2.5">
+          <FileText size={18} className="text-primary" />
+          <h2 className="text-[16px] font-semibold text-foreground">Itens do orçamento</h2>
+          <span className="bg-primary text-white text-[12px] font-medium rounded-full w-6 h-6 flex items-center justify-center">
             {items.length}
-          </Badge>
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex gap-2">
+          <button
             onClick={handleClear}
             className={cn(
-              "h-8 text-xs transition-colors",
+              "h-9 px-4 rounded-lg border text-[13px] font-medium flex items-center gap-1.5 transition-colors",
               confirmClear
-                ? "border-destructive text-destructive hover:bg-destructive/10"
-                : ""
+                ? "border-destructive text-destructive bg-red-50 hover:bg-red-100"
+                : "border-border bg-white text-foreground hover:bg-secondary"
             )}
           >
-            {confirmClear ? (
-              <>
-                <AlertCircle className="w-3 h-3 mr-1.5" />
-                Confirmar limpeza
-              </>
-            ) : (
-              <>
-                <Trash2 className="w-3 h-3 mr-1.5" />
-                Limpar
-              </>
-            )}
-          </Button>
-          <Button
-            size="sm"
+            {confirmClear ? <AlertCircle size={14} /> : <Trash2 size={14} />}
+            {confirmClear ? "Confirmar limpeza" : "Limpar"}
+          </button>
+          <button
             onClick={handleGenerate}
-            className="h-8 text-xs bg-primary hover:bg-primary/90 shadow-sm"
+            className="h-9 px-5 rounded-lg bg-primary hover:bg-primary/90 text-[13px] font-medium text-white flex items-center gap-1.5 transition-colors"
           >
-            <Download className="w-3 h-3 mr-1.5" />
+            <Download size={14} />
             Gerar PDF
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-border overflow-hidden bg-card">
+      {/* ── Tabela ── */}
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[14px]" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "48px" }} />
+              <col />
+              <col style={{ width: "80px" }} />
+              <col style={{ width: "72px" }} />
+              <col style={{ width: "72px" }} />
+              <col style={{ width: "110px" }} />
+              <col style={{ width: "100px" }} />
+              <col style={{ width: "44px" }} />
+            </colgroup>
             <thead>
-              <tr className="border-b border-border bg-muted/40">
-                {[
-                  { label: "Qtd.", align: "left" },
-                  { label: "Descrição", align: "left" },
-                  { label: "Material", align: "left" },
-                  { label: "Peso", align: "right" },
-                  { label: "Tempo", align: "right" },
-                  { label: "Valor total", align: "right" },
-                  { label: "Valor unit.", align: "right" },
-                  { label: "", align: "right" },
-                ].map((col) => (
+              <tr className="bg-secondary border-b border-border">
+                {["Qtd.", "Descrição", "Material", "Peso", "Tempo", "Valor total", "Valor unit.", ""].map((h) => (
                   <th
-                    key={col.label}
-                    className={cn(
-                      "px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap",
-                      col.align === "right" ? "text-right" : "text-left"
-                    )}
+                    key={h}
+                    className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap"
                   >
-                    {col.label}
+                    {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {items.map((item, idx) => {
-                const { inputs, results } = item;
-                const qty = Math.max(1, Number(inputs.quantity) || 1);
+              {items.map(({ inputs, results }, idx) => {
+                const qty   = Math.max(1, Number(inputs.quantity) || 1);
                 const round = inputs.roundPrice;
-                const useWholesale =
-                  !!inputs.useWholesalePrice &&
-                  (inputs.wholesaleDiscount ?? 0) > 0;
-                const priceRaw = useWholesale
-                  ? results.wholesalePrice
-                  : results.finalPriceWithFee;
-                const totalPrice = round ? Math.round(priceRaw) : priceRaw;
-                const unitPrice = totalPrice / qty;
-
-                const totalH = Math.floor(results.totalTime);
-                const totalM = Math.round((results.totalTime - totalH) * 60);
+                const useW  = !!inputs.useWholesalePrice && (inputs.wholesaleDiscount ?? 0) > 0;
+                const raw   = useW ? results.wholesalePrice : results.finalPriceWithFee;
+                const total = round ? Math.round(raw) : raw;
+                const unit  = total / qty;
 
                 return (
                   <tr
                     key={idx}
-                    className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
+                    className="border-b border-border/50 last:border-0 hover:bg-secondary/30 transition-colors"
                   >
+                    {/* Qtd */}
                     <td className="px-4 py-3.5">
-                      <span className="font-mono font-medium text-foreground">
-                        {qty}×
-                      </span>
+                      <span className="font-mono font-semibold text-foreground">{qty}×</span>
                     </td>
+
+                    {/* Descrição + imagem */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
                         {(inputs as any).productImage ? (
                           <img
                             src={(inputs as any).productImage}
                             alt=""
-                            className="w-8 h-8 rounded-md object-cover border border-border shrink-0"
+                            className="w-9 h-9 rounded-md object-cover border border-border shrink-0"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center shrink-0">
-                            <Package className="w-3.5 h-3.5 text-muted-foreground" />
+                          <div className="w-9 h-9 rounded-md bg-secondary flex items-center justify-center shrink-0">
+                            <Package size={14} className="text-muted-foreground" />
                           </div>
                         )}
-                        <div>
-                          <p className="font-medium text-foreground truncate max-w-[180px]">
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground truncate">
                             {inputs.pieceName}
                           </p>
                           {inputs.clientName && (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[12px] text-muted-foreground truncate">
                               {inputs.clientName}
                             </p>
                           )}
                         </div>
                       </div>
                     </td>
+
+                    {/* Material */}
                     <td className="px-4 py-3.5">
-                      <Badge
-                        variant="outline"
-                        className="text-xs font-normal"
-                      >
+                      <span className="bg-secondary border border-border rounded-md px-2 py-0.5 text-[12px] font-medium text-foreground">
                         {inputs.material}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground">
+
+                    {/* Peso */}
+                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
                       {(inputs.filamentUsed ?? 0).toFixed(1)}g
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground whitespace-nowrap">
-                      {totalH}h {totalM}m
+
+                    {/* Tempo */}
+                    <td className="px-4 py-3.5 font-mono text-muted-foreground whitespace-nowrap">
+                      {fmtTime(results.totalTime)}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-foreground">
-                      {formatBRL(totalPrice, round)}
+
+                    {/* Valor total */}
+                    <td className="px-4 py-3.5 font-mono font-semibold text-foreground">
+                      {fmtBRL(total, round)}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground">
-                      {formatBRL(unitPrice, round)}
+
+                    {/* Valor unit */}
+                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
+                      {fmtBRL(unit, round)}
                     </td>
+
+                    {/* Remover */}
                     <td className="px-4 py-3.5 text-right">
                       <button
                         onClick={() => onRemoveItem(idx)}
-                        className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto"
                         title="Remover"
+                        className="w-7 h-7 rounded-md flex items-center justify-center ml-auto text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X size={14} />
                       </button>
                     </td>
                   </tr>
@@ -264,23 +229,19 @@ export const QuoteTab = ({
           </table>
         </div>
 
-        {/* Total */}
-        <div className="px-4 py-4 bg-muted/30 border-t border-border">
-          <div className="flex items-center justify-end gap-4">
-            <span className="text-sm font-medium text-muted-foreground">
-              Total geral ({items.length} item{items.length > 1 ? "s" : ""})
-            </span>
-            <span className="text-2xl font-semibold font-mono text-primary">
-              {formatBRL(grandTotal)}
-            </span>
-          </div>
+        {/* Total geral */}
+        <div className="px-6 py-4 bg-secondary border-t border-border flex items-center justify-end gap-4">
+          <span className="text-[14px] text-muted-foreground">
+            Total geral · {items.length} item(s)
+          </span>
+          <span className="text-[24px] font-semibold font-mono text-primary">
+            {fmtBRL(grandTotal)}
+          </span>
         </div>
       </div>
 
-      {/* Info */}
-      <p className="text-xs text-center text-muted-foreground">
-        Os preços exibidos refletem as configurações de cada item (atacado/arredondamento).
-        O PDF conterá todos os detalhes de cada peça.
+      <p className="text-[12px] text-center text-muted-foreground">
+        Valores refletem as configurações individuais de cada item (arredondamento e atacado).
       </p>
     </div>
   );

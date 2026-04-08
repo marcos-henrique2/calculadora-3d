@@ -21,7 +21,7 @@ export interface CalculatorInputs {
   packagingCost: number;
   extraCost: number;
   failureRate: number;
-  complexity: 'simple' | 'intermediate' | 'high';
+  complexity: "simple" | "intermediate" | "high";
   profitMargin: number;
 
   additionalFee: number;
@@ -47,12 +47,12 @@ export interface CalculationResults {
   productionCost: number;
   costPerUnit: number;
   profitAmount: number;
+  profitPerUnit: number;
   finalPrice: number;
   finalPriceWithFee: number;
-  totalTime: number;
-  profitPerUnit: number;
   finalPricePerUnit: number;
+  netMarginPercent: number;
   wholesalePrice: number;
   wholesalePricePerUnit: number;
-  netMarginPercent: number;
+  totalTime: number;
 }
