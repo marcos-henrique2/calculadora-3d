@@ -63,7 +63,7 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
   /* ── Estado vazio ── */
   if (!items.length) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[420px] text-center px-8 space-y-5">
+      <div className="flex flex-col items-center justify-center min-h-[420px] text-center px-6 space-y-5">
         <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center">
           <ShoppingCart size={36} className="text-muted-foreground" />
         </div>
@@ -82,7 +82,7 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
     <div className="space-y-5">
 
       {/* ── Cabeçalho ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <FileText size={18} className="text-primary" />
           <h2 className="text-[16px] font-semibold text-foreground">Itens do orçamento</h2>
@@ -94,7 +94,7 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
           <button
             onClick={handleClear}
             className={cn(
-              "h-9 px-4 rounded-lg border text-[13px] font-medium flex items-center gap-1.5 transition-colors",
+              "flex-1 sm:flex-none h-9 px-4 rounded-lg border text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors",
               confirmClear
                 ? "border-destructive text-destructive bg-red-50 hover:bg-red-100"
                 : "border-border bg-white text-foreground hover:bg-secondary"
@@ -105,7 +105,7 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
           </button>
           <button
             onClick={handleGenerate}
-            className="h-9 px-5 rounded-lg bg-primary hover:bg-primary/90 text-[13px] font-medium text-white flex items-center gap-1.5 transition-colors"
+            className="flex-1 sm:flex-none h-9 px-5 rounded-lg bg-primary hover:bg-primary/90 text-[13px] font-medium text-white flex items-center justify-center gap-1.5 transition-colors"
           >
             <Download size={14} />
             Gerar PDF
@@ -116,27 +116,17 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
       {/* ── Tabela ── */}
       <div className="rounded-xl border border-border bg-white overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-[14px]" style={{ tableLayout: "fixed" }}>
-            <colgroup>
-              <col style={{ width: "48px" }} />
-              <col />
-              <col style={{ width: "80px" }} />
-              <col style={{ width: "72px" }} />
-              <col style={{ width: "72px" }} />
-              <col style={{ width: "110px" }} />
-              <col style={{ width: "100px" }} />
-              <col style={{ width: "44px" }} />
-            </colgroup>
+          <table className="w-full text-[14px]" style={{ tableLayout: "auto" }}>
             <thead>
               <tr className="bg-secondary border-b border-border">
-                {["Qtd.", "Descrição", "Material", "Peso", "Tempo", "Valor total", "Valor unit.", ""].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap"
-                  >
-                    {h}
-                  </th>
-                ))}
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Qtd.</th>
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Descrição</th>
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Material</th>
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Peso</th>
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap hidden md:table-cell">Tempo</th>
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Total</th>
+                <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">Unit.</th>
+                <th className="px-3 py-3 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -154,26 +144,26 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
                     className="border-b border-border/50 last:border-0 hover:bg-secondary/30 transition-colors"
                   >
                     {/* Qtd */}
-                    <td className="px-4 py-3.5">
+                    <td className="px-3 py-3.5">
                       <span className="font-mono font-semibold text-foreground">{qty}×</span>
                     </td>
 
                     {/* Descrição + imagem */}
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
+                    <td className="px-3 py-3.5">
+                      <div className="flex items-center gap-2">
                         {(inputs as any).productImage ? (
                           <img
                             src={(inputs as any).productImage}
                             alt=""
-                            className="w-9 h-9 rounded-md object-cover border border-border shrink-0"
+                            className="w-8 h-8 rounded-md object-cover border border-border shrink-0 hidden sm:block"
                           />
                         ) : (
-                          <div className="w-9 h-9 rounded-md bg-secondary flex items-center justify-center shrink-0">
-                            <Package size={14} className="text-muted-foreground" />
+                          <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center shrink-0 hidden sm:flex">
+                            <Package size={13} className="text-muted-foreground" />
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate">
+                          <p className="font-medium text-foreground truncate max-w-[120px] sm:max-w-none">
                             {inputs.pieceName}
                           </p>
                           {inputs.clientName && (
@@ -186,34 +176,34 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
                     </td>
 
                     {/* Material */}
-                    <td className="px-4 py-3.5">
+                    <td className="px-3 py-3.5 hidden sm:table-cell">
                       <span className="bg-secondary border border-border rounded-md px-2 py-0.5 text-[12px] font-medium text-foreground">
                         {inputs.material}
                       </span>
                     </td>
 
                     {/* Peso */}
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
+                    <td className="px-3 py-3.5 font-mono text-muted-foreground hidden sm:table-cell">
                       {(inputs.filamentUsed ?? 0).toFixed(1)}g
                     </td>
 
                     {/* Tempo */}
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground whitespace-nowrap">
+                    <td className="px-3 py-3.5 font-mono text-muted-foreground whitespace-nowrap hidden md:table-cell">
                       {fmtTime(results.totalTime)}
                     </td>
 
                     {/* Valor total */}
-                    <td className="px-4 py-3.5 font-mono font-semibold text-foreground">
+                    <td className="px-3 py-3.5 font-mono font-semibold text-foreground whitespace-nowrap">
                       {fmtBRL(total, round)}
                     </td>
 
                     {/* Valor unit */}
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
+                    <td className="px-3 py-3.5 font-mono text-muted-foreground whitespace-nowrap hidden sm:table-cell">
                       {fmtBRL(unit, round)}
                     </td>
 
                     {/* Remover */}
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-3 py-3.5 text-right">
                       <button
                         onClick={() => onRemoveItem(idx)}
                         title="Remover"
@@ -230,11 +220,11 @@ export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: P
         </div>
 
         {/* Total geral */}
-        <div className="px-6 py-4 bg-secondary border-t border-border flex items-center justify-end gap-4">
-          <span className="text-[14px] text-muted-foreground">
-            Total geral · {items.length} item(s)
+        <div className="px-4 py-4 bg-secondary border-t border-border flex items-center justify-between sm:justify-end gap-4">
+          <span className="text-[13px] text-muted-foreground">
+            Total · {items.length} item(s)
           </span>
-          <span className="text-[24px] font-semibold font-mono text-primary">
+          <span className="text-[22px] font-semibold font-mono text-primary">
             {fmtBRL(grandTotal)}
           </span>
         </div>

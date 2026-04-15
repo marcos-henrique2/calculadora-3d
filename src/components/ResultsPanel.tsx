@@ -155,7 +155,7 @@ export const ResultsPanel = ({ inputs, results: init, onGenerateQuote, onAddToQu
         <p className="text-[12px] font-medium text-white/60 uppercase tracking-wider mb-1">
           Preço de venda sugerido
         </p>
-        <p className="text-[40px] font-semibold font-mono leading-none tracking-tight">
+        <p className="text-[28px] sm:text-[40px] font-semibold font-mono leading-none tracking-tight">
           {fmt(init.finalPriceWithFee)}
         </p>
         <p className="text-[13px] text-white/55 mt-1.5">
@@ -206,7 +206,7 @@ export const ResultsPanel = ({ inputs, results: init, onGenerateQuote, onAddToQu
                 {status === "ideal"&& "Preço dentro da faixa ideal"}
                 {status === "high" && "Preço acima do recomendado"}
               </p>
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
                 {[
                   { label: "Seu preço",  val: fmt(desired!) },
                   { label: "Sugerido",   val: fmt(init.finalPriceWithFee) },
@@ -345,7 +345,7 @@ export const ResultsPanel = ({ inputs, results: init, onGenerateQuote, onAddToQu
             Retorno sobre investimento
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             {
               icon: <Package  size={18} className="text-primary" />,
@@ -393,7 +393,7 @@ export const ResultsPanel = ({ inputs, results: init, onGenerateQuote, onAddToQu
       )}
 
       {/* ── Ações ── */}
-      <div className="grid grid-cols-2 gap-3 pb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
         <button
           onClick={() => onAddToQuote(actionInputs(), actionResults())}
           className="

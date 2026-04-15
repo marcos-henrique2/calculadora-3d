@@ -61,7 +61,13 @@
 
   html, body {
     height: 100%;
-    overflow: hidden; /* Layout fixed-height */
+  }
+
+  /* Desktop: fixed-height layout sem scroll da página */
+  @media (min-width: 768px) {
+    html, body {
+      overflow: hidden;
+    }
   }
 
   body {

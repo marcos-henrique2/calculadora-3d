@@ -48,7 +48,7 @@ export const Grid2 = ({
   children: React.ReactNode;
   className?: string;
 }) => (
-  <div className={cn("grid grid-cols-2 gap-5", className)}>{children}</div>
+  <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-5", className)}>{children}</div>
 );
 
 /** Grid de 3 colunas iguais. */
@@ -59,7 +59,7 @@ export const Grid3 = ({
   children: React.ReactNode;
   className?: string;
 }) => (
-  <div className={cn("grid grid-cols-3 gap-5", className)}>{children}</div>
+  <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5", className)}>{children}</div>
 );
 
 /** Par de campos de tempo (horas + minutos). */
