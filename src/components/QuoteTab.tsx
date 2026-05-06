@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CalculatorInputs, CalculationResults } from "@/types/calculator";
+import { useCalculatorStore } from "@/store/calculatorStore";
+import { CalculatorInputs, CalculationResults, QuoteItem } from "@/types/calculator";
 import { fmtBRL, fmtTime } from "@/utils/calculator";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -13,19 +14,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-export type QuoteItem = {
-  inputs: CalculatorInputs;
-  results: CalculationResults;
-};
-
 interface Props {
-  items: QuoteItem[];
-  onRemoveItem: (index: number) => void;
-  onClearItems: () => void;
   onGeneratePDF: (items: QuoteItem[]) => void;
 }
 
-export const QuoteTab = ({ items, onRemoveItem, onClearItems, onGeneratePDF }: Props) => {
+export const QuoteTab = ({ onGeneratePDF }: Props) => {
+  const { quoteItems: items, removeQuoteItem: onRemoveItem, clearQuoteItems: onClearItems } = useCalculatorStore();
   const { toast } = useToast();
   const [confirmClear, setConfirmClear] = useState(false);
 

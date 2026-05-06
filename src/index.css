@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,29 +6,29 @@
 
 @layer base {
   :root {
-    /* Cores principais */
-    --background:       220 20% 97%;
-    --foreground:       222 30% 12%;
+    /* Cores principais premium (Light Mode) */
+    --background:       0 0% 98%;
+    --foreground:       240 10% 10%;
 
     --card:             0 0% 100%;
-    --card-foreground:  222 30% 12%;
+    --card-foreground:  240 10% 10%;
 
     --popover:          0 0% 100%;
-    --popover-foreground: 222 30% 12%;
+    --popover-foreground: 240 10% 10%;
 
-    --primary:          221 85% 42%;
+    --primary:          252 82% 62%; /* Premium Violet/Indigo */
     --primary-foreground: 0 0% 100%;
 
-    --secondary:        220 14% 93%;
-    --secondary-foreground: 222 20% 28%;
+    --secondary:        240 5% 96%;
+    --secondary-foreground: 240 6% 20%;
 
-    --muted:            220 14% 94%;
-    --muted-foreground: 220 10% 50%;
+    --muted:            240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent:           221 85% 42%;
-    --accent-foreground: 0 0% 100%;
+    --accent:           252 82% 95%;
+    --accent-foreground: 252 82% 40%;
 
-    --destructive:      0 72% 51%;
+    --destructive:      0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --success:          145 63% 38%;
@@ -37,21 +37,21 @@
     --warning:          36 90% 48%;
     --warning-foreground: 0 0% 100%;
 
-    --border:           220 13% 87%;
-    --input:            220 13% 87%;
-    --ring:             221 85% 42%;
+    --border:           240 6% 90%;
+    --input:            240 6% 90%;
+    --ring:             252 82% 62%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Seções do formulário */
-    --section-peca-bg:        #EFF6FF;
-    --section-peca-icon:      #1D4ED8;
+    /* Seções do formulário (Premium Colors) */
+    --section-peca-bg:        #EEF2FF;
+    --section-peca-icon:      #4338CA;
     --section-impressao-bg:   #F0FDF4;
-    --section-impressao-icon: #166534;
+    --section-impressao-icon: #15803D;
     --section-trabalho-bg:    #FFFBEB;
-    --section-trabalho-icon:  #92400E;
+    --section-trabalho-icon:  #B45309;
     --section-preco-bg:       #F5F3FF;
-    --section-preco-icon:     #4C1D95;
+    --section-preco-icon:     #6D28D9;
   }
 
   * {
@@ -63,7 +63,6 @@
     height: 100%;
   }
 
-  /* Desktop: fixed-height layout sem scroll da página */
   @media (min-width: 768px) {
     html, body {
       overflow: hidden;
@@ -72,12 +71,11 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Remove spin buttons de inputs numéricos — mais limpo */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -87,7 +85,6 @@
     -moz-appearance: textfield;
   }
 
-  /* Scrollbar fina */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
@@ -99,11 +96,19 @@
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
 
+  /* Glassmorphism utility */
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
   /* Range slider customizado */
   input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    height: 5px;
+    height: 6px;
     background: hsl(var(--border));
     border-radius: 3px;
     outline: none;
@@ -112,35 +117,38 @@
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: hsl(var(--primary));
     border: 3px solid white;
-    box-shadow: 0 1px 5px rgb(0 0 0 / 0.18);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
     cursor: pointer;
-    transition: transform 0.12s;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
   input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.15);
   }
   input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: hsl(var(--primary));
     border: 3px solid white;
-    box-shadow: 0 1px 5px rgb(0 0 0 / 0.18);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
     cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.15);
   }
 
-  /* Animação de entrada dos resultados */
   .slide-up {
-    animation: slideUp 0.22s ease-out both;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(15px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 }

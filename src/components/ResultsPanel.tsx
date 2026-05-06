@@ -38,10 +38,10 @@ const MetricCard = ({
 }) => (
   <div
     className={cn(
-      "rounded-xl border p-4 space-y-1",
-      variant === "default" && "bg-secondary border-border",
-      variant === "blue"    && "bg-blue-50 border-blue-200",
-      variant === "green"   && "bg-green-50 border-green-200"
+      "rounded-xl border p-4 space-y-1 shadow-sm transition-all hover:shadow-md",
+      variant === "default" && "bg-white/60 glass border-border",
+      variant === "blue"    && "bg-blue-50/70 glass border-blue-200",
+      variant === "green"   && "bg-green-50/70 glass border-green-200"
     )}
   >
     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
@@ -151,8 +151,9 @@ export const ResultsPanel = ({ inputs, results: init, onGenerateQuote, onAddToQu
     <div className="space-y-4 slide-up">
 
       {/* ── HERO: Preço principal ── */}
-      <div className="rounded-2xl bg-primary p-6 text-white">
-        <p className="text-[12px] font-medium text-white/60 uppercase tracking-wider mb-1">
+      <div className="rounded-2xl bg-gradient-to-br from-primary to-violet-700 p-6 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        <p className="text-[12px] font-medium text-white/70 uppercase tracking-wider mb-1 relative z-10">
           Preço de venda sugerido
         </p>
         <p className="text-[28px] sm:text-[40px] font-semibold font-mono leading-none tracking-tight">

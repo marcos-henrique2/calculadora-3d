@@ -56,3 +56,8 @@ export interface CalculationResults {
   wholesalePricePerUnit: number;
   totalTime: number;
 }
+
+export interface QuoteItem {
+  inputs: CalculatorInputs;
+  results: CalculationResults;
+}
